@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   StyleSheet,
   Text,
@@ -96,7 +96,15 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn]   = useState(false);
   const [token, setToken]             = useState("");
   const [user, setUser]               = useState<{ id: number; name: string; email: string; role: string } | null>(null);
-  const [apiHost, setApiHost]         = useState("http://10.0.2.2:3000");
+  const [apiHost, setApiHost]         = useState("http://192.168.1.8:3000");
+  const [tempHost, setTempHost]       = useState("http://192.168.1.8:3000");
+  const [showHostModal, setShowHostModal] = useState(false);
+
+  // Use a ref so fetch functions always see the latest apiHost (fixes stale closure)
+  const apiHostRef = useRef(apiHost);
+  useEffect(() => { apiHostRef.current = apiHost; }, [apiHost]);
+  const tokenRef = useRef(token);
+  useEffect(() => { tokenRef.current = token; }, [token]);
 
   // Login form
   const [email, setEmail]             = useState("");
@@ -105,7 +113,7 @@ export default function App() {
   const [authError, setAuthError]     = useState("");
   const [showSettings, setShowSettings] = useState(false);
 
-  // Tab navigation (account is the last)
+  // Tab navigation
   const [activeTab, setActiveTab] = useState<"repository" | "catalog" | "loans" | "account">("repository");
 
   // Repository (Thesis) state
@@ -119,33 +127,32 @@ export default function App() {
   const [books, setBooks]             = useState<Book[]>([]);
   const [bookSearch, setBookSearch]   = useState("");
   const [bookLoading, setBookLoading] = useState(false);
+  const [bookError, setBookError]     = useState("");
 
   // Loans state
   const [borrowings, setBorrowings]       = useState<Borrowing[]>([]);
   const [borrowingsLoading, setBorrowingsLoading] = useState(false);
 
-  // ── Fetch helpers ───────────────────────────────────────────────────────────
-  const loadTheses = useCallback(async (q = thesisSearch) => {
+  // ── Fetch helpers — menggunakan ref agar selalu dapat apiHost terbaru ────────
+  const loadTheses = async (q?: string) => {
+    const query = q ?? thesisSearch;
     setThesisLoading(true);
     try {
-      const res = await fetch(`${apiHost}/api/thesis?q=${encodeURIComponent(q)}&status=APPROVED`);
+      const res = await fetch(`${apiHostRef.current}/api/thesis?q=${encodeURIComponent(query)}&status=APPROVED`);
       if (res.ok) setTheses(await res.json());
+      else console.warn("Thesis API error:", res.status);
     } catch (e) {
       console.warn("Thesis fetch error:", e);
     } finally {
       setThesisLoading(false);
     }
-  }, [apiHost, thesisSearch]);
+  };
 
   const loadThesisDetail = async (thesisId: number) => {
-    // If already expanded, collapse
-    if (expandedThesis === thesisId) {
-      setExpandedThesis(null);
-      return;
-    }
+    if (expandedThesis === thesisId) { setExpandedThesis(null); return; }
     setChapterLoading(thesisId);
     try {
-      const res = await fetch(`${apiHost}/api/thesis/${thesisId}`);
+      const res = await fetch(`${apiHostRef.current}/api/thesis/${thesisId}`);
       if (res.ok) {
         const detail: Thesis = await res.json();
         setTheses((prev) =>
@@ -154,30 +161,38 @@ export default function App() {
         setExpandedThesis(thesisId);
       }
     } catch (e) {
-      console.warn("Chapter fetch error:", e);
+      Alert.alert("Gagal memuat bab", `Periksa koneksi. Host: ${apiHostRef.current}`);
     } finally {
       setChapterLoading(null);
     }
   };
 
-  const loadBooks = useCallback(async (q = bookSearch) => {
+  const loadBooks = async (q?: string) => {
+    const query = q ?? bookSearch;
     setBookLoading(true);
+    setBookError("");
     try {
-      const res = await fetch(`${apiHost}/api/books?q=${encodeURIComponent(q)}`);
-      if (res.ok) setBooks(await res.json());
+      const res = await fetch(`${apiHostRef.current}/api/books?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        setBooks(await res.json());
+      } else {
+        setBookError(`Server error: ${res.status}`);
+      }
     } catch (e) {
+      const msg = `Gagal terhubung ke ${apiHostRef.current}. Pastikan server berjalan dan IP Host sudah benar.`;
+      setBookError(msg);
       console.warn("Books fetch error:", e);
     } finally {
       setBookLoading(false);
     }
-  }, [apiHost, bookSearch]);
+  };
 
-  const loadBorrowings = useCallback(async () => {
+  const loadBorrowings = async () => {
     if (!isLoggedIn) return;
     setBorrowingsLoading(true);
     try {
-      const res = await fetch(`${apiHost}/api/borrowings`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await fetch(`${apiHostRef.current}/api/borrowings`, {
+        headers: { Authorization: `Bearer ${tokenRef.current}` },
       });
       if (res.ok) setBorrowings(await res.json());
     } catch (e) {
@@ -185,14 +200,15 @@ export default function App() {
     } finally {
       setBorrowingsLoading(false);
     }
-  }, [apiHost, token, isLoggedIn]);
+  };
 
-  // Initial load
+  // Initial load & tab change
   useEffect(() => { loadTheses(); }, []);
   useEffect(() => {
     if (activeTab === "catalog") loadBooks();
     else if (activeTab === "loans") loadBorrowings();
-  }, [activeTab]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, isLoggedIn]);
 
   // ── Auth handlers ───────────────────────────────────────────────────────────
   const handleLogin = async () => {
@@ -385,6 +401,17 @@ export default function App() {
       </View>
       {bookLoading ? (
         <ActivityIndicator size="large" color="#5b48e0" style={{ marginTop: 32 }} />
+      ) : bookError ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorBoxTitle}>Gagal Memuat Katalog</Text>
+          <Text style={styles.errorBoxMsg}>{bookError}</Text>
+          <TouchableOpacity style={styles.errorBoxBtn} onPress={() => loadBooks()}>
+            <Text style={styles.errorBoxBtnText}>Coba Lagi</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.errorBoxBtn, { backgroundColor: "#f3f4f6", marginTop: 8 }]} onPress={() => setShowHostModal(true)}>
+            <Text style={[styles.errorBoxBtnText, { color: "#374151" }]}>Ubah Host API</Text>
+          </TouchableOpacity>
+        </View>
       ) : (
         <FlatList
           data={books}
@@ -588,11 +615,19 @@ export default function App() {
             {isLoggedIn ? `Halo, ${user?.name}` : "Repository Ilmiah"}
           </Text>
         </View>
-        {isLoggedIn && (
-          <View style={styles.loggedInBadge}>
-            <Text style={styles.loggedInBadgeText}>ANGGOTA</Text>
-          </View>
-        )}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+          {isLoggedIn && (
+            <View style={styles.loggedInBadge}>
+              <Text style={styles.loggedInBadgeText}>ANGGOTA</Text>
+            </View>
+          )}
+          <TouchableOpacity
+            style={styles.hostBtn}
+            onPress={() => { setTempHost(apiHost); setShowHostModal(true); }}
+          >
+            <Text style={styles.hostBtnText}>HOST</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* ── Content ──────────────────────────────────────────────────────── */}
@@ -629,6 +664,58 @@ export default function App() {
           );
         })}
       </View>
+
+      {/* ── Host Settings Modal ─────────────────────────────────────── */}
+      <Modal
+        visible={showHostModal}
+        animationType="slide"
+        transparent
+        onRequestClose={() => setShowHostModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Konfigurasi Host API</Text>
+            <Text style={styles.modalSubtitle}>
+              Masukkan alamat IP server Next.js Anda. HP dan komputer harus terhubung ke Wi-Fi yang sama.
+            </Text>
+            <Text style={[styles.inputLabel, { marginTop: 16 }]}>ALAMAT HOST API</Text>
+            <TextInput
+              style={styles.textInput}
+              value={tempHost}
+              onChangeText={setTempHost}
+              placeholder="http://192.168.x.x:3000"
+              placeholderTextColor="#9ca3af"
+              autoCapitalize="none"
+              autoCorrect={false}
+              keyboardType="url"
+            />
+            <View style={styles.modalHintBox}>
+              <Text style={styles.modalHint}>• Emulator Android: http://10.0.2.2:3000</Text>
+              <Text style={styles.modalHint}>• HP Fisik (Wi-Fi): http://192.168.1.x:3000</Text>
+              <Text style={styles.modalHint}>• Cek IP komputer: ipconfig (Windows)</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.loginBtn}
+              onPress={() => {
+                setApiHost(tempHost);
+                apiHostRef.current = tempHost;
+                setShowHostModal(false);
+                // Reload data dengan host baru
+                if (activeTab === "catalog") { setBookError(""); loadBooks(); }
+                else if (activeTab === "repository") loadTheses();
+              }}
+            >
+              <Text style={styles.loginBtnText}>SIMPAN &amp; TERAPKAN</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.logoutCard, { marginTop: 10 }]}
+              onPress={() => setShowHostModal(false)}
+            >
+              <Text style={styles.logoutCardText}>Batal</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -862,4 +949,48 @@ const styles = StyleSheet.create({
   settingsToggleText:{ fontSize: 12, color: C.primary, fontWeight: "600" },
   settingsBox:       { marginTop: 8, paddingTop: 16, borderTopWidth: 1, borderTopColor: C.border },
   settingsHint:      { fontSize: 11, color: C.faint, lineHeight: 16, marginTop: 4 },
+
+  // Host button in header
+  hostBtn: {
+    paddingHorizontal: 10,
+    paddingVertical:   5,
+    borderRadius:      6,
+    backgroundColor:   C.primarySoft,
+    borderWidth:       1,
+    borderColor:       C.primary + "40",
+  },
+  hostBtnText: { fontSize: 10, color: C.primary, fontWeight: "800", letterSpacing: 0.5 },
+
+  // Host modal
+  modalOverlay: {
+    flex:            1,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent:  "flex-end",
+  },
+  modalBox: {
+    backgroundColor: C.surface,
+    borderTopLeftRadius:  20,
+    borderTopRightRadius: 20,
+    padding:         24,
+    paddingBottom:   36,
+  },
+  modalTitle:    { fontSize: 18, fontWeight: "800", color: C.ink, marginBottom: 6 },
+  modalSubtitle: { fontSize: 13, color: C.muted, lineHeight: 18, marginBottom: 4 },
+  modalHintBox:  { backgroundColor: C.bg, borderRadius: 8, padding: 12, marginVertical: 12, gap: 4 },
+  modalHint:     { fontSize: 12, color: C.muted, lineHeight: 18 },
+
+  // Error box in catalog
+  errorBox: {
+    margin:          20,
+    padding:         20,
+    backgroundColor: "#fff5f5",
+    borderRadius:    14,
+    borderWidth:     1,
+    borderColor:     "#fecaca",
+    alignItems:      "center",
+  },
+  errorBoxTitle: { fontSize: 15, fontWeight: "800", color: C.accent, marginBottom: 8 },
+  errorBoxMsg:   { fontSize: 12, color: C.muted, textAlign: "center", lineHeight: 18, marginBottom: 16 },
+  errorBoxBtn:   { backgroundColor: C.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8, width: "100%" as const, alignItems: "center" as const },
+  errorBoxBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
 });
