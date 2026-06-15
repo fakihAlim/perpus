@@ -11,10 +11,11 @@ import {
   StatusBar,
   ScrollView,
   Alert,
-  Linking,
   Modal,
   Platform,
 } from "react-native";
+import { WebView } from "react-native-webview";
+import * as ScreenCapture from "expo-screen-capture";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface ThesisChapter {
@@ -133,6 +134,11 @@ export default function App() {
   const [borrowings, setBorrowings]       = useState<Borrowing[]>([]);
   const [borrowingsLoading, setBorrowingsLoading] = useState(false);
 
+  // PDF Viewer state
+  const [pdfViewerVisible, setPdfViewerVisible] = useState(false);
+  const [pdfViewerUrl, setPdfViewerUrl]         = useState("");
+  const [pdfViewerTitle, setPdfViewerTitle]     = useState("");
+
   // ── Fetch helpers — menggunakan ref agar selalu dapat apiHost terbaru ────────
   const loadTheses = async (q?: string) => {
     const query = q ?? thesisSearch;
@@ -245,7 +251,7 @@ export default function App() {
     setActiveTab("repository");
   };
 
-  // ── PDF open handler ────────────────────────────────────────────────────────
+  // ── PDF Viewer handler ───────────────────────────────────────
   const handleOpenChapter = (chapter: ThesisChapter) => {
     if (chapter.isLocked && !isLoggedIn) {
       Alert.alert(
@@ -258,10 +264,10 @@ export default function App() {
       );
       return;
     }
-    const fullUrl = `${apiHost}${chapter.pdfPath}`;
-    Linking.openURL(fullUrl).catch(() =>
-      Alert.alert("Gagal membuka PDF", "Tidak dapat membuka URL: " + fullUrl)
-    );
+    const fullUrl = `${apiHostRef.current}${chapter.pdfPath}`;
+    setPdfViewerUrl(fullUrl);
+    setPdfViewerTitle(chapter.chapterName);
+    setPdfViewerVisible(true);
   };
 
   // ── Tab guard for login-required tabs ──────────────────────────────────────
@@ -716,6 +722,15 @@ export default function App() {
           </View>
         </View>
       </Modal>
+
+      {/* PDF Viewer */}
+      {pdfViewerVisible && (
+        <PdfViewerModal
+          url={pdfViewerUrl}
+          title={pdfViewerTitle}
+          onClose={() => setPdfViewerVisible(false)}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -993,4 +1008,131 @@ const styles = StyleSheet.create({
   errorBoxMsg:   { fontSize: 12, color: C.muted, textAlign: "center", lineHeight: 18, marginBottom: 16 },
   errorBoxBtn:   { backgroundColor: C.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8, width: "100%" as const, alignItems: "center" as const },
   errorBoxBtnText: { fontSize: 13, fontWeight: "700", color: "#fff" },
+});
+
+// ─── PDF Viewer Modal Component ───────────────────────────────────────────────
+function PdfViewerModal({ url, title, onClose }: { url: string; title: string; onClose: () => void }) {
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => { ScreenCapture.allowScreenCaptureAsync(); };
+  }, []);
+
+  const esc = url.replace(/\\/g, "/").replace(/"/g, '\\"');
+
+  const html = `<!DOCTYPE html>
+<html><head>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
+html,body{height:100%;background:#0f0b1e;font-family:-apple-system,sans-serif}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:#a78bfa;gap:12px;font-size:13px;font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:#5b48e0;display:inline-block;margin:0 3px;animation:b .9s infinite}.dot:nth-child(2){animation-delay:.15s}.dot:nth-child(3){animation-delay:.3s}
+@keyframes b{0%,80%,100%{transform:scale(.5);opacity:.3}40%{transform:scale(1);opacity:1}}
+#err{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:#f87171;gap:8px;padding:24px;text-align:center}
+#err p{font-size:12px;color:#9ca3af;line-height:1.5}
+#box{padding:10px 6px 88px}
+canvas{width:100%!important;height:auto!important;display:block;margin-bottom:8px;border-radius:3px;box-shadow:0 3px 12px rgba(0,0,0,.5)}
+#nav{position:fixed;bottom:0;left:0;right:0;background:rgba(15,11,30,.97);border-top:1px solid #2d2060;display:flex;align-items:center;justify-content:space-between;padding:10px 18px;gap:8px}
+.nb{background:#5b48e0;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;min-width:64px}.nb:disabled{background:#2d2060;color:#4b5563}
+#pi{color:#a78bfa;font-size:12px;font-weight:700;text-align:center;flex:1}
+</style></head>
+<body>
+<div id="loading"><div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Memuat dokumen PDF...</div>
+<div id="err"><span style="font-size:22px">&#9888;</span><strong>Gagal memuat PDF</strong><p id="em">Periksa koneksi ke server.</p></div>
+<div id="box"></div>
+<div id="nav" style="display:none">
+  <button class="nb" id="bp" onclick="prev()">&#8592; Prev</button>
+  <span id="pi">...</span>
+  <button class="nb" id="bn" onclick="next()">Next &#8594;</button>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"><\/script>
+<script>
+document.addEventListener("contextmenu",e=>e.preventDefault());
+document.addEventListener("copy",e=>e.preventDefault());
+document.addEventListener("cut",e=>e.preventDefault());
+document.addEventListener("dragstart",e=>e.preventDefault());
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const U="${esc}";
+let doc=null,cp=1,tp=0,rn=false;
+async function init(){
+  try{
+    doc=await pdfjsLib.getDocument({url:U,withCredentials:false}).promise;
+    tp=doc.numPages;
+    document.getElementById("loading").style.display="none";
+    document.getElementById("nav").style.display="flex";
+    await draw(1);
+  }catch(e){
+    document.getElementById("loading").style.display="none";
+    document.getElementById("err").style.display="flex";
+    document.getElementById("em").textContent=e.message||"Error";
+  }
+}
+async function draw(n){
+  if(rn)return;rn=true;cp=n;
+  const b=document.getElementById("box");b.innerHTML="";
+  try{
+    const pg=await doc.getPage(n);
+    const dpr=Math.min(window.devicePixelRatio||1,2);
+    const v0=pg.getViewport({scale:1});
+    const vp=pg.getViewport({scale:(window.innerWidth/v0.width)*dpr});
+    const cv=document.createElement("canvas");
+    cv.width=vp.width;cv.height=vp.height;
+    await pg.render({canvasContext:cv.getContext("2d"),viewport:vp}).promise;
+    b.appendChild(cv);window.scrollTo(0,0);
+  }catch(e){console.warn(e);}
+  document.getElementById("pi").textContent=n+" / "+tp;
+  document.getElementById("bp").disabled=n<=1;
+  document.getElementById("bn").disabled=n>=tp;
+  rn=false;
+}
+function prev(){if(cp>1&&!rn)draw(cp-1);}
+function next(){if(cp<tp&&!rn)draw(cp+1);}
+init();
+<\/script>
+</body></html>`;
+
+  const baseUrl = url.includes("/uploads") ? url.split("/uploads")[0] : url;
+
+  return (
+    <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <SafeAreaView style={pdfSt.root}>
+        <StatusBar barStyle="light-content" backgroundColor="#0f0b1e" />
+        <View style={pdfSt.header}>
+          <Text style={pdfSt.titleTxt} numberOfLines={1}>{title}</Text>
+          <TouchableOpacity style={pdfSt.closeBtn} onPress={onClose}>
+            <Text style={pdfSt.closeTxt}>Tutup</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={pdfSt.warn}>
+          <Text style={pdfSt.warnTxt}>Dokumen dilindungi hak cipta — tangkapan layar &amp; salin teks dinonaktifkan</Text>
+        </View>
+        <WebView
+          style={{ flex: 1, backgroundColor: "#0f0b1e" }}
+          source={{ html, baseUrl }}
+          originWhitelist={["*"]}
+          javaScriptEnabled
+          allowFileAccess
+          allowUniversalAccessFromFileURLs
+          mixedContentMode="always"
+          scrollEnabled
+          bounces={false}
+          overScrollMode="never"
+          setBuiltInZoomControls={false}
+          setDisplayZoomControls={false}
+          allowsLinkPreview={false}
+          injectedJavaScript={"document.addEventListener('copy',e=>e.preventDefault(),true);true;"}
+        />
+      </SafeAreaView>
+    </Modal>
+  );
+}
+
+const pdfSt = StyleSheet.create({
+  root:     { flex: 1, backgroundColor: "#0f0b1e" },
+  header:   { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#150a30", borderBottomWidth: 1, borderBottomColor: "#2d2060" },
+  titleTxt: { flex: 1, color: "#e2d9f3", fontSize: 14, fontWeight: "700", marginRight: 12 },
+  closeBtn: { backgroundColor: "#5b48e0", paddingHorizontal: 14, paddingVertical: 7, borderRadius: 8 },
+  closeTxt: { color: "#fff", fontSize: 12, fontWeight: "700" },
+  warn:     { backgroundColor: "#1a0f3d", paddingHorizontal: 16, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: "#2d2060" },
+  warnTxt:  { color: "#7c6fad", fontSize: 10, textAlign: "center" },
 });
