@@ -1021,7 +1021,7 @@ function PdfViewerModal({ url, title, onClose }: { url: string; title: string; o
 
   const html = `<!DOCTYPE html>
 <html><head>
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=4.0,user-scalable=yes">
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-user-select:none!important;user-select:none!important;-webkit-touch-callout:none!important}
 html,body{height:100%;background:#0f0b1e;font-family:-apple-system,sans-serif}
@@ -1094,7 +1094,7 @@ init();
   const baseUrl = url.includes("/uploads") ? url.split("/uploads")[0] : url;
 
   return (
-    <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+    <Modal visible animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={pdfSt.root}>
         <StatusBar barStyle="light-content" backgroundColor="#0f0b1e" />
         <View style={pdfSt.header}>
@@ -1117,8 +1117,9 @@ init();
           scrollEnabled
           bounces={false}
           overScrollMode="never"
-          setBuiltInZoomControls={false}
+          setBuiltInZoomControls={true}
           setDisplayZoomControls={false}
+          scalesPageToFit={true}
           allowsLinkPreview={false}
           injectedJavaScript={"document.addEventListener('copy',e=>e.preventDefault(),true);true;"}
         />
