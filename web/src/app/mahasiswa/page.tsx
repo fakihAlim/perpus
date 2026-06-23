@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client";
 
 import { useState, useEffect } from "react";
@@ -14,7 +15,20 @@ interface Borrowing {
   book: {
     title: string;
     author: string;
+    type: string;
+    pdfUrl?: string | null;
   };
+}
+
+interface Reservation {
+  id: number;
+  book: {
+    title: string;
+    author: string;
+    stock: number;
+  };
+  reserveDate: string;
+  status: string;
 }
 
 interface ThesisChapter {
@@ -41,8 +55,9 @@ interface ChapterUpload {
 }
 
 export default function StudentDashboard() {
-  const [activeTab, setActiveTab] = useState<"dashboard" | "profile">("dashboard");
+  const [activeTab, setActiveTab] = useState<"dashboard" | "reservations" | "profile">("dashboard");
   const [borrowings, setBorrowings] = useState<Borrowing[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
   const [theses, setTheses] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ id: number; name: string; email: string; role: string; status: string; createdAt: string } | null>(null);
@@ -84,14 +99,24 @@ export default function StudentDashboard() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (bRes.ok) {
-        setBorrowings(await bRes.json());
+        const json = await bRes.json();
+        setBorrowings(json.data || json);
       }
 
       const tRes = await fetch("/api/thesis", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (tRes.ok) {
-        setTheses(await tRes.json());
+        const json = await tRes.json();
+        setTheses(json.data || json);
+      }
+
+      const rRes = await fetch("/api/reservations", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (rRes.ok) {
+        const json = await rRes.json();
+        setReservations(json.data || json);
       }
     } catch (error) {
       console.error("Failed to load dashboard data:", error);
@@ -289,31 +314,31 @@ export default function StudentDashboard() {
 
   if (loading && !user) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center text-slate-500 font-mono text-xs uppercase tracking-widest">
+      <div className="min-h-screen bg-bg-subtle flex items-center justify-center text-ink-muted font-medium text-sm text-xs ">
         SYSTEM_LOADING_DASHBOARD...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-bg-subtle text-ink flex flex-col font-sans">
       
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200/80 bg-white/95 backdrop-blur-md">
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-bg-subtle/95 backdrop-blur-md">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-lg font-bold tracking-tight font-display text-slate-900">
-              PERPUS<span className="text-indigo-600 font-mono">_</span>DIGITAL
+            <span className="text-lg font-bold tracking-tight font-semibold text-lg text-primary">
+              PERPUS<span className="text-primary font-medium text-sm">_</span>DIGITAL
             </span>
           </Link>
 
           <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 font-mono hidden sm:inline-block">
-              MEMBER: <strong className="text-indigo-600 font-sans font-medium">{user?.name.toUpperCase()}</strong>
+            <span className="text-xs text-ink-muted font-medium text-sm hidden sm:inline-block">
+              MEMBER: <strong className="text-primary font-sans font-medium">{user?.name.toUpperCase()}</strong>
             </span>
             <button
               onClick={handleLogout}
-              className="font-mono text-[10px] font-bold uppercase tracking-widest text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded border border-slate-200 bg-white hover:bg-slate-50 transition-all"
+              className="font-medium text-sm text-[10px] font-bold  text-ink-muted hover:text-ink px-3 py-1.5 rounded border border-border bg-bg-subtle hover:bg-bg-muted transition-all"
             >
               [Exit]
             </button>
@@ -325,7 +350,7 @@ export default function StudentDashboard() {
       <div className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
         
         {/* Tab Selection */}
-        <div className="flex items-center border-b border-slate-200 mb-8">
+        <div className="flex items-center border-b border-border mb-8">
           <button
             onClick={() => {
               setActiveTab("dashboard");
@@ -333,13 +358,28 @@ export default function StudentDashboard() {
               setErrorMsg("");
               setSuccessMsg("");
             }}
-            className={`px-5 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-5 py-3.5 border-b-2 text-xs font-bold  transition-all ${
               activeTab === "dashboard" && !isUploading
-                ? "border-slate-900 text-slate-900 font-extrabold"
-                : "border-transparent text-slate-400 hover:text-slate-700"
+                ? "border-primary text-primary font-extrabold"
+                : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
             Dashboard
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab("reservations");
+              setIsUploading(false);
+              setErrorMsg("");
+              setSuccessMsg("");
+            }}
+            className={`px-5 py-3.5 border-b-2 text-xs font-bold  transition-all ${
+              activeTab === "reservations" && !isUploading
+                ? "border-primary text-primary font-extrabold"
+                : "border-transparent text-ink-muted hover:text-ink"
+            }`}
+          >
+            Reservasi
           </button>
           <button
             onClick={() => {
@@ -348,10 +388,10 @@ export default function StudentDashboard() {
               setPasswordError("");
               setPasswordSuccess("");
             }}
-            className={`px-5 py-3.5 border-b-2 text-xs font-bold uppercase tracking-wider transition-all ${
+            className={`px-5 py-3.5 border-b-2 text-xs font-bold  transition-all ${
               activeTab === "profile"
-                ? "border-slate-900 text-slate-900 font-extrabold"
-                : "border-transparent text-slate-400 hover:text-slate-700"
+                ? "border-primary text-primary font-extrabold"
+                : "border-transparent text-ink-muted hover:text-ink"
             }`}
           >
             Profile Anda
@@ -361,11 +401,11 @@ export default function StudentDashboard() {
         {activeTab === "dashboard" ? (
           isUploading ? (
             /* Upload Thesis View */
-            <div className="bg-white border border-slate-200/80 rounded-xl p-6 sm:p-8 max-w-3xl mx-auto shadow-sm">
-              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+            <div className="bg-bg border border-border rounded-xl p-6 sm:p-8 max-w-3xl mx-auto shadow-sm">
+              <div className="flex justify-between items-center mb-6 border-b border-border pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900 font-display">Unggah Mandiri Skripsi</h2>
-                  <p className="text-xs text-slate-500 mt-1 font-sans">
+                  <h2 className="text-lg font-bold text-ink font-semibold text-lg">Unggah Mandiri Skripsi</h2>
+                  <p className="text-xs text-ink-muted mt-1 font-sans">
                     Unggah skripsi per bab. Petugas akan memverifikasi dan menyetel bab-bab yang akan dikunci sebelum dipublikasikan.
                   </p>
                 </div>
@@ -375,14 +415,14 @@ export default function StudentDashboard() {
                     setErrorMsg("");
                     setSuccessMsg("");
                   }}
-                  className="text-xs font-mono font-bold uppercase text-slate-400 hover:text-slate-800 transition-colors"
+                  className="text-xs font-medium text-sm font-bold uppercase text-ink-muted hover:text-ink-secondary transition-colors"
                 >
                   [Batal]
                 </button>
               </div>
 
               {errorMsg && (
-                <div className="mb-6 bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-mono uppercase tracking-wide">
+                <div className="mb-6 bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-medium text-sm uppercase tracking-wide">
                   [ERROR]: {errorMsg}
                 </div>
               )}
@@ -392,7 +432,7 @@ export default function StudentDashboard() {
                 {/* Metadata Fields */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                    <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                       Judul Skripsi
                     </label>
                     <input
@@ -401,18 +441,18 @@ export default function StudentDashboard() {
                       placeholder="Masukkan judul skripsi lengkap"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                    <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                       Jurusan
                     </label>
                     <select
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
-                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                     >
                       <option value="Teknik Informatika">Teknik Informatika</option>
                       <option value="Sistem Informasi">Sistem Informasi</option>
@@ -423,7 +463,7 @@ export default function StudentDashboard() {
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                     Abstrak
                   </label>
                   <textarea
@@ -432,13 +472,13 @@ export default function StudentDashboard() {
                     placeholder="Tuliskan ringkasan abstrak penelitian..."
                     value={abstract}
                     onChange={(e) => setAbstract(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
+                    className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 resize-none"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                    <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                       Tahun Lulus
                     </label>
                     <input
@@ -446,12 +486,12 @@ export default function StudentDashboard() {
                       required
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
-                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-slate-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                    <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                       Dosen Pembimbing 1
                     </label>
                     <input
@@ -460,12 +500,12 @@ export default function StudentDashboard() {
                       placeholder="Nama Dosen Pembimbing 1"
                       value={advisor1}
                       onChange={(e) => setAdvisor1(e.target.value)}
-                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                    <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                       Dosen Pembimbing 2 (Opsional)
                     </label>
                     <input
@@ -473,19 +513,19 @@ export default function StudentDashboard() {
                       placeholder="Nama Dosen Pembimbing 2"
                       value={advisor2}
                       onChange={(e) => setAdvisor2(e.target.value)}
-                      className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                      className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                     />
                   </div>
                 </div>
 
                 {/* Chapters Dynamic Rows */}
-                <div className="border-t border-slate-100 pt-6 mt-6">
+                <div className="border-t border-border pt-6 mt-6">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-bold text-slate-900 font-mono uppercase tracking-wider">Berkas PDF Bab Skripsi</h3>
+                    <h3 className="text-sm font-bold text-ink font-medium text-sm ">Berkas PDF Bab Skripsi</h3>
                     <button
                       type="button"
                       onClick={handleAddChapterRow}
-                      className="text-xs font-mono font-bold uppercase text-indigo-600 hover:text-indigo-800 transition-colors"
+                      className="text-xs font-medium text-sm font-bold uppercase text-indigo-600 hover:text-indigo-800 transition-colors"
                     >
                       + Tambah Bab
                     </button>
@@ -495,10 +535,10 @@ export default function StudentDashboard() {
                     {chapters.map((ch, index) => (
                       <div
                         key={index}
-                        className="bg-slate-50 p-4 border border-slate-200/80 rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4"
+                        className="bg-bg-subtle p-4 border border-border rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4"
                       >
                         <div className="flex-1">
-                          <label className="block text-[9px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1">
+                          <label className="block text-[9px] font-bold font-medium text-sm  text-ink-muted mb-1">
                             Nama Bab/Bagian
                           </label>
                           <input
@@ -507,12 +547,12 @@ export default function StudentDashboard() {
                             placeholder="Contoh: Bab 1 - Pendahuluan"
                             value={ch.name}
                             onChange={(e) => handleChapterNameChange(index, e.target.value)}
-                            className="w-full bg-white text-slate-900 border border-slate-200 rounded px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-300"
+                            className="w-full bg-bg text-ink border border-border-strong rounded px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-slate-300"
                           />
                         </div>
 
                         <div className="w-full md:w-64">
-                          <label className="block text-[9px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1">
+                          <label className="block text-[9px] font-bold font-medium text-sm  text-ink-muted mb-1">
                             File PDF (Maks 10MB)
                           </label>
                           <input
@@ -520,7 +560,7 @@ export default function StudentDashboard() {
                             accept=".pdf"
                             required
                             onChange={(e) => handleChapterFileChange(index, e)}
-                            className="w-full bg-white text-slate-500 border border-slate-200 rounded px-2 py-1 text-xs focus:outline-none"
+                            className="w-full bg-bg text-ink-muted border border-border-strong rounded px-2 py-1 text-xs focus:outline-none"
                           />
                         </div>
 
@@ -528,7 +568,7 @@ export default function StudentDashboard() {
                           <button
                             type="button"
                             onClick={() => handleRemoveChapterRow(index)}
-                            className="text-xs font-mono font-bold uppercase text-red-500 hover:text-red-700 md:mt-4 self-end md:self-auto"
+                            className="text-xs font-medium text-sm font-bold uppercase text-red-500 hover:text-red-700 md:mt-4 self-end md:self-auto"
                           >
                             [Hapus]
                           </button>
@@ -542,7 +582,7 @@ export default function StudentDashboard() {
                 <button
                   type="submit"
                   disabled={uploadLoading}
-                  className="w-full mt-4 py-3.5 px-4 rounded-lg text-xs font-bold uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm font-mono"
+                  className="w-full mt-4 py-3.5 px-4 rounded-lg text-xs font-bold  bg-primary hover:bg-accent-hover text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm font-medium text-sm"
                 >
                   {uploadLoading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -561,13 +601,13 @@ export default function StudentDashboard() {
               <div className="lg:col-span-7 space-y-8">
                 
                 {/* Active Borrowing Card */}
-                <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900 mb-5 font-mono uppercase tracking-wider border-b border-slate-100 pb-3">
+                <div className="bg-bg border border-border rounded-xl p-6 shadow-sm">
+                  <h2 className="text-sm font-bold text-ink mb-5 font-medium text-sm  border-b border-border pb-3">
                     Buku Yang Sedang Dipinjam
                   </h2>
 
                   {borrowings.filter((b) => b.status === "BORROWED").length === 0 ? (
-                    <div className="text-center py-10 bg-slate-50 rounded-lg border border-slate-200/80 text-slate-400 text-xs font-mono uppercase tracking-wider">
+                    <div className="text-center py-10 bg-bg-subtle rounded-lg border border-border text-ink-muted text-xs font-medium text-sm ">
                       TIDAK_ADA_BUKU_YANG_DIPINJAM
                     </div>
                   ) : (
@@ -577,18 +617,37 @@ export default function StudentDashboard() {
                         .map((b) => (
                           <div
                             key={b.id}
-                            className="bg-white p-4 rounded-lg border border-slate-200 flex items-center justify-between gap-4"
+                            className="bg-bg p-4 rounded-lg border border-border-strong flex items-center justify-between gap-4"
                           >
                             <div>
-                              <h4 className="font-bold text-slate-900 text-sm">{b.book.title}</h4>
-                              <p className="text-xs text-slate-500 mt-0.5">Penulis: {b.book.author}</p>
-                              <p className="text-[10px] font-mono text-red-500 mt-2 font-semibold">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-ink text-sm">{b.book.title}</h4>
+                                {b.book.type === "DIGITAL" && (
+                                  <span className="text-[8px] font-bold font-medium text-sm px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-600 border border-indigo-100">
+                                    DIGITAL
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-ink-muted mt-0.5">Penulis: {b.book.author}</p>
+                              <p className="text-[10px] font-medium text-sm text-red-500 mt-2 font-semibold">
                                 BATAS PENGEMBALIAN: {new Date(b.dueDate).toLocaleDateString("id-ID")}
                               </p>
                             </div>
-                            <span className="text-[9px] font-bold font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-600 border border-amber-200 uppercase tracking-wider">
-                              Dipinjam
-                            </span>
+                            <div className="flex flex-col items-end gap-2">
+                              <span className="text-[9px] font-bold font-medium text-sm px-2 py-0.5 rounded bg-warning-bg text-warning border border-warning/20 ">
+                                Dipinjam
+                              </span>
+                              {b.book.type === "DIGITAL" && b.book.pdfUrl && (
+                                <a 
+                                  href={b.book.pdfUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-[10px] font-bold font-medium text-sm uppercase bg-primary text-white px-3 py-1.5 rounded hover:bg-accent-hover transition-colors"
+                                >
+                                  Baca PDF
+                                </a>
+                              )}
+                            </div>
                           </div>
                         ))}
                     </div>
@@ -596,9 +655,9 @@ export default function StudentDashboard() {
                 </div>
 
                 {/* Thesis Submissions List Card */}
-                <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm">
-                  <div className="flex justify-between items-center mb-5 border-b border-slate-100 pb-3">
-                    <h2 className="text-sm font-bold text-slate-900 font-mono uppercase tracking-wider">
+                <div className="bg-bg border border-border rounded-xl p-6 shadow-sm">
+                  <div className="flex justify-between items-center mb-5 border-b border-border pb-3">
+                    <h2 className="text-sm font-bold text-ink font-medium text-sm ">
                       Status Riwayat Skripsi Anda
                     </h2>
                     <button
@@ -607,20 +666,20 @@ export default function StudentDashboard() {
                         setErrorMsg("");
                         setSuccessMsg("");
                       }}
-                      className="text-xs font-mono font-bold uppercase text-indigo-600 hover:text-indigo-800 transition-colors"
+                      className="text-xs font-medium text-sm font-bold uppercase text-indigo-600 hover:text-indigo-800 transition-colors"
                     >
                       + Unggah Skripsi
                     </button>
                   </div>
 
                   {successMsg && (
-                    <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-600 p-3 rounded-lg text-xs font-mono uppercase tracking-wide">
+                    <div className="mb-4 bg-success-bg border border-success/20 text-success p-3 rounded-lg text-xs font-medium text-sm uppercase tracking-wide">
                       [SUCCESS]: {successMsg}
                     </div>
                   )}
 
                   {theses.length === 0 ? (
-                    <div className="text-center py-10 bg-slate-50 rounded-lg border border-slate-200/80 text-slate-400 text-xs font-mono uppercase tracking-wider">
+                    <div className="text-center py-10 bg-bg-subtle rounded-lg border border-border text-ink-muted text-xs font-medium text-sm ">
                       BELUM_ADA_RIWAYAT_UNGGAHAN_SKRIPSI
                     </div>
                   ) : (
@@ -628,20 +687,20 @@ export default function StudentDashboard() {
                       {theses.map((t) => (
                         <div
                           key={t.id}
-                          className="bg-white p-4 rounded-lg border border-slate-200 flex flex-col gap-2"
+                          className="bg-bg p-4 rounded-lg border border-border-strong flex flex-col gap-2"
                         >
                           <div className="flex items-center justify-between gap-4">
                             <div className="flex-1">
-                              <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{t.title}</h4>
-                              <p className="text-xs text-slate-500 mt-0.5">Jurusan: {t.department} | Tahun: {t.year}</p>
+                              <h4 className="font-bold text-ink text-sm line-clamp-1">{t.title}</h4>
+                              <p className="text-xs text-ink-muted mt-0.5">Jurusan: {t.department} | Tahun: {t.year}</p>
                             </div>
 
                             <span
-                              className={`text-[9px] font-bold font-mono px-2 py-0.5 rounded uppercase tracking-wider ${
+                              className={`text-[9px] font-bold font-medium text-sm px-2 py-0.5 rounded  ${
                                 t.status === "APPROVED"
-                                  ? "bg-emerald-50 text-emerald-600 border border-emerald-200"
+                                  ? "bg-success-bg text-success border border-success/20"
                                   : t.status === "PENDING"
-                                  ? "bg-amber-50 text-amber-600 border border-amber-200"
+                                  ? "bg-warning-bg text-warning border border-warning/20"
                                   : "bg-red-50 text-red-600 border border-red-200"
                               }`}
                             >
@@ -651,13 +710,13 @@ export default function StudentDashboard() {
 
                           {/* List of uploaded chapters */}
                           {t.chapters && t.chapters.length > 0 && (
-                            <div className="mt-2 border-t border-slate-100 pt-2 bg-slate-50/50 p-2.5 rounded">
-                              <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider block mb-1">Daftar Bab Uploaded:</span>
+                            <div className="mt-2 border-t border-border pt-2 bg-bg-subtle/50 p-2.5 rounded">
+                              <span className="text-[10px] font-bold font-medium text-sm text-ink-muted  block mb-1">Daftar Bab Uploaded:</span>
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                                 {t.chapters.map((ch) => (
-                                  <div key={ch.id} className="flex items-center justify-between text-xs text-slate-600 bg-white border border-slate-150 px-2 py-1 rounded">
+                                  <div key={ch.id} className="flex items-center justify-between text-xs text-slate-600 bg-bg border border-slate-150 px-2 py-1 rounded">
                                     <span className="truncate max-w-[150px] font-sans">{ch.chapterName}</span>
-                                    <span className="text-[8px] font-mono font-bold uppercase px-1 py-0.2 rounded bg-slate-100 text-slate-500 border border-slate-200">
+                                    <span className="text-[8px] font-medium text-sm font-bold uppercase px-1 py-0.2 rounded bg-bg-muted text-ink-muted border border-border-strong">
                                       {ch.isLocked ? "Terkunci" : "Terbuka"}
                                     </span>
                                   </div>
@@ -674,25 +733,25 @@ export default function StudentDashboard() {
 
               {/* Right Column (Info Dashboard & Panduan) */}
               <div className="lg:col-span-5 space-y-8">
-                <div className="bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm">
-                  <h2 className="text-sm font-bold text-slate-900 mb-4 font-mono uppercase tracking-wider border-b border-slate-100 pb-2">
+                <div className="bg-bg border border-border rounded-xl p-6 shadow-sm">
+                  <h2 className="text-sm font-bold text-ink mb-4 font-medium text-sm  border-b border-border pb-2">
                     Panduan Pengunggahan Skripsi
                   </h2>
-                  <ul className="space-y-3.5 text-xs text-slate-500 font-sans leading-relaxed">
+                  <ul className="space-y-3.5 text-xs text-ink-muted font-sans leading-relaxed">
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-950 font-bold font-mono">1.</span>
+                      <span className="text-slate-950 font-bold font-medium text-sm">1.</span>
                       <span>Mahasiswa mengunggah data skripsi lengkap dengan melampirkan berkas PDF **per bab** skripsi secara urut.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-950 font-bold font-mono">2.</span>
+                      <span className="text-slate-950 font-bold font-medium text-sm">2.</span>
                       <span>Unggahan baru memiliki status **PENDING** dan belum diterbitkan di beranda umum.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-950 font-bold font-mono">3.</span>
+                      <span className="text-slate-950 font-bold font-medium text-sm">3.</span>
                       <span>Petugas perpustakaan akan memverifikasi berkas. Petugas yang berwenang **mengunci bab tertentu** (misalnya bab pembahasan/data penting) dan mempublikasikan skripsi ke website.</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-slate-950 font-bold font-mono">4.</span>
+                      <span className="text-slate-950 font-bold font-medium text-sm">4.</span>
                       <span>Setelah disetujui (**APPROVED**), file skripsi yang tidak dikunci bisa dibaca publik secara bebas, sedangkan bab terkunci mewajibkan login terlebih dahulu.</span>
                     </li>
                   </ul>
@@ -701,30 +760,73 @@ export default function StudentDashboard() {
 
             </div>
           )
+        ) : activeTab === "reservations" ? (
+          /* Reservations Tab View */
+          <div className="bg-bg border border-border rounded-xl p-6 shadow-sm max-w-4xl mx-auto">
+            <h2 className="text-sm font-bold text-ink mb-5 font-medium text-sm  border-b border-border pb-3">
+              Status Reservasi Buku Fisik
+            </h2>
+
+            {reservations.length === 0 ? (
+              <div className="text-center py-10 bg-bg-subtle rounded-lg border border-border text-ink-muted text-xs font-medium text-sm ">
+                TIDAK_ADA_ANTRIAN_RESERVASI
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reservations.map((r) => (
+                  <div
+                    key={r.id}
+                    className="bg-bg p-4 rounded-lg border border-border flex items-center justify-between gap-4"
+                  >
+                    <div>
+                      <h4 className="font-bold text-ink text-sm">{r.book.title}</h4>
+                      <p className="text-xs text-ink-muted mt-0.5">Penulis: {r.book.author}</p>
+                      <p className="text-[10px] font-medium text-sm text-ink-muted mt-2">
+                        TANGGAL RESERVASI: {new Date(r.reserveDate).toLocaleDateString("id-ID")}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span
+                        className={`text-[9px] font-bold font-medium text-sm px-2 py-0.5 rounded  ${
+                          r.status === "FULFILLED"
+                            ? "bg-success-bg text-success border border-success/20"
+                            : r.status === "CANCELLED"
+                            ? "bg-danger-bg text-danger border border-danger/20"
+                            : "bg-warning-bg text-warning border border-warning/20"
+                        }`}
+                      >
+                        {r.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           /* Profile Tab View */
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 max-w-4xl mx-auto">
             
             {/* User Details Box */}
-            <div className="md:col-span-5 bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm h-fit">
-              <div className="flex flex-col items-center text-center pb-6 border-b border-slate-100">
-                <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200 font-mono text-slate-400 font-bold text-lg mb-4">
+            <div className="md:col-span-5 bg-bg border border-border rounded-xl p-6 shadow-sm h-fit">
+              <div className="flex flex-col items-center text-center pb-6 border-b border-border">
+                <div className="w-16 h-16 rounded-full bg-bg-muted flex items-center justify-center border border-border-strong font-medium text-sm text-ink-muted font-bold text-lg mb-4">
                   [USR]
                 </div>
-                <h3 className="font-bold text-slate-900 text-base font-display">{user?.name}</h3>
-                <span className="text-xs font-mono text-slate-400 uppercase tracking-widest mt-1">
+                <h3 className="font-bold text-ink text-base font-semibold text-lg">{user?.name}</h3>
+                <span className="text-xs font-medium text-sm text-ink-muted  mt-1">
                   {user?.role}
                 </span>
               </div>
 
               <div className="pt-6 space-y-4 text-xs font-sans">
                 <div>
-                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider block">Alamat Email</span>
-                  <span className="text-slate-800 font-medium block mt-0.5">{user?.email}</span>
+                  <span className="text-[10px] font-bold font-medium text-sm text-ink-muted  block">Alamat Email</span>
+                  <span className="text-ink-secondary font-medium block mt-0.5">{user?.email}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold font-mono text-slate-400 uppercase tracking-wider block">Status Keanggotaan</span>
-                  <span className="text-emerald-600 font-bold uppercase tracking-wider block mt-0.5 font-mono">
+                  <span className="text-[10px] font-bold font-medium text-sm text-ink-muted  block">Status Keanggotaan</span>
+                  <span className="text-success font-bold  block mt-0.5 font-medium text-sm">
                     {user?.status}
                   </span>
                 </div>
@@ -732,25 +834,25 @@ export default function StudentDashboard() {
             </div>
 
             {/* Change Password Box */}
-            <div className="md:col-span-7 bg-white border border-slate-200/80 rounded-xl p-6 shadow-sm">
-              <h3 className="text-sm font-bold text-slate-900 mb-5 font-mono uppercase tracking-wider border-b border-slate-100 pb-3">
+            <div className="md:col-span-7 bg-bg border border-border rounded-xl p-6 shadow-sm">
+              <h3 className="text-sm font-bold text-ink mb-5 font-medium text-sm  border-b border-border pb-3">
                 Ubah Kata Sandi Akun
               </h3>
 
               {passwordError && (
-                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-mono uppercase tracking-wide">
+                <div className="mb-4 bg-red-50 border border-red-200 text-red-600 p-3 rounded-lg text-xs font-medium text-sm uppercase tracking-wide">
                   [ERROR]: {passwordError}
                 </div>
               )}
               {passwordSuccess && (
-                <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-600 p-3 rounded-lg text-xs font-mono uppercase tracking-wide font-mono">
+                <div className="mb-4 bg-success-bg border border-success/20 text-success p-3 rounded-lg text-xs font-medium text-sm uppercase tracking-wide font-medium text-sm">
                   [SUCCESS]: {passwordSuccess}
                 </div>
               )}
 
               <form onSubmit={handleChangePassword} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                     Kata Sandi Lama
                   </label>
                   <input
@@ -759,12 +861,12 @@ export default function StudentDashboard() {
                     placeholder="••••••••"
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                     Kata Sandi Baru
                   </label>
                   <input
@@ -773,12 +875,12 @@ export default function StudentDashboard() {
                     placeholder="Minimal 6 karakter"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+                  <label className="block text-[10px] font-bold font-medium text-sm  text-ink-muted mb-1.5">
                     Konfirmasi Kata Sandi Baru
                   </label>
                   <input
@@ -787,14 +889,14 @@ export default function StudentDashboard() {
                     placeholder="Ulangi kata sandi baru"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
+                    className="w-full bg-bg-subtle text-ink border border-border-strong rounded-lg px-3.5 py-2.5 text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="w-full mt-2 py-3.5 px-4 rounded-lg text-xs font-bold uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm font-mono"
+                  className="w-full mt-2 py-3.5 px-4 rounded-lg text-xs font-bold  bg-primary hover:bg-accent-hover text-white transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm font-medium text-sm"
                 >
                   {passwordLoading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

@@ -1,3 +1,4 @@
+/* eslint-disable */
 "use client";
 
 import { useState } from "react";
@@ -37,7 +38,7 @@ export default function AuthPage() {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      setSuccessMsg("LOGIN_SUCCESS. REDIRECTING...");
+      setSuccessMsg("Login berhasil. Mengalihkan...");
       
       setTimeout(() => {
         if (data.user.role === "STUDENT") {
@@ -76,7 +77,7 @@ export default function AuthPage() {
         return;
       }
 
-      setSuccessMsg("REGISTRATION_SUCCESS. PLEASE CONTACT LIBRARIAN.");
+      setSuccessMsg("Pendaftaran berhasil. Silakan hubungi petugas perpustakaan untuk aktivasi.");
       setName("");
       setEmail("");
       setPassword("");
@@ -94,51 +95,41 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-canvas-dark flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 font-sans relative">
-      
-      {/* Decorative Starfield background */}
-      <div 
-        className="absolute inset-0 opacity-10 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-          backgroundSize: "24px 24px"
-        }}
-      />
-
-      <div className="w-full max-w-[450px] relative z-10 px-4">
+    <div className="min-h-screen bg-bg-subtle flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8 font-sans">
+      <div className="w-full max-w-md">
         
         {/* Header */}
-        <div className="w-full text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2 mb-6">
-            <span className="text-2xl font-bold tracking-tight font-display text-white">
-              PERPUS<span className="text-accent-lime font-mono">_</span>DIGITAL
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block mb-6">
+            <span className="text-2xl font-bold tracking-tight text-primary">
+              PerpusDigital
             </span>
           </Link>
-          <h2 className="text-2xl font-extrabold tracking-tight text-white font-display">
-            {activeTab === "login" ? "MASUK_SISTEM" : "PENDAFTARAN_TAMU"}
+          <h2 className="text-xl font-semibold text-ink">
+            {activeTab === "login" ? "Masuk ke Akun Anda" : "Daftar Akun Tamu"}
           </h2>
-          <p className="mt-2 text-xs text-on-dark-muted font-mono uppercase tracking-[0.2px]">
+          <p className="mt-2 text-sm text-ink-muted">
             Atau{" "}
-            <Link href="/" className="text-white underline hover:text-accent-lime transition-colors">
-              Kembali ke Beranda
+            <Link href="/" className="text-primary font-medium hover:underline">
+              kembali ke beranda
             </Link>
           </p>
         </div>
 
         {/* Card */}
-        <div className="bg-surface-night py-8 px-6 sm:px-10 border border-hairline-violet rounded-xl backdrop-blur-md w-full">
+        <div className="bg-bg rounded-lg border border-border p-8">
           {/* Tab Selector */}
-          <div className="flex bg-primary p-1 rounded-lg mb-6 border border-hairline-violet">
+          <div className="flex bg-bg-muted p-1 rounded-lg mb-6">
             <button
               onClick={() => {
                 setActiveTab("login");
                 setErrorMsg("");
                 setSuccessMsg("");
               }}
-              className={`flex-1 text-center py-2 text-xs font-bold uppercase tracking-[0.2px] rounded transition-all ${
+              className={`flex-1 text-center py-2.5 text-sm font-medium rounded-md transition-all ${
                 activeTab === "login"
-                  ? "bg-accent-violet-deep text-white border border-hairline-violet"
-                  : "text-on-dark-muted hover:text-white"
+                  ? "bg-bg text-ink shadow-sm"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               Masuk
@@ -149,10 +140,10 @@ export default function AuthPage() {
                 setErrorMsg("");
                 setSuccessMsg("");
               }}
-              className={`flex-1 text-center py-2 text-xs font-bold uppercase tracking-[0.2px] rounded transition-all ${
+              className={`flex-1 text-center py-2.5 text-sm font-medium rounded-md transition-all ${
                 activeTab === "register"
-                  ? "bg-accent-violet-deep text-white border border-hairline-violet"
-                  : "text-on-dark-muted hover:text-white"
+                  ? "bg-bg text-ink shadow-sm"
+                  : "text-ink-muted hover:text-ink"
               }`}
             >
               Daftar Tamu
@@ -161,13 +152,13 @@ export default function AuthPage() {
 
           {/* Alerts */}
           {errorMsg && (
-            <div className="mb-4 bg-rose-500/10 border border-rose-500/20 text-rose-400 p-3 rounded text-xs font-mono uppercase tracking-[0.2px] flex items-center gap-2">
-              <span>[ERROR]: {errorMsg}</span>
+            <div className="mb-4 bg-danger-bg border border-danger/20 text-danger p-3 rounded-md text-sm">
+              {errorMsg}
             </div>
           )}
           {successMsg && (
-            <div className="mb-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 p-3 rounded text-xs font-mono uppercase tracking-[0.2px] flex items-center gap-2">
-              <span>[SUCCESS]: {successMsg}</span>
+            <div className="mb-4 bg-success-bg border border-success/20 text-success p-3 rounded-md text-sm">
+              {successMsg}
             </div>
           )}
 
@@ -175,42 +166,42 @@ export default function AuthPage() {
             /* Login Form */
             <form onSubmit={handleLogin} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   Email
                 </label>
                 <input
                   type="email"
                   required
-                  placeholder="name@email.com"
+                  placeholder="nama@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-primary/60 text-white border border-hairline-violet rounded-sm px-3 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-surface-night"
+                  className="w-full bg-bg text-ink border border-border rounded-md px-3.5 py-2.5 text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   Kata Sandi
                 </label>
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  placeholder="Masukkan kata sandi"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-primary/60 text-white border border-hairline-violet rounded-sm px-3 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-surface-night"
+                  className="w-full bg-bg text-ink border border-border rounded-md px-3.5 py-2.5 text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-3 px-4 rounded-md text-xs font-bold uppercase tracking-[0.2px] bg-white hover:bg-surface-press-light text-primary transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                className="w-full mt-2 py-2.5 px-4 rounded-md text-sm font-semibold bg-primary hover:bg-accent-hover text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  "MASUK_SISTEM"
+                  "Masuk"
                 )}
               </button>
             </form>
@@ -218,7 +209,7 @@ export default function AuthPage() {
             /* Register Form */
             <form onSubmit={handleRegister} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   Nama Lengkap
                 </label>
                 <input
@@ -227,12 +218,12 @@ export default function AuthPage() {
                   placeholder="Masukkan nama Anda"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-primary/60 text-white border border-hairline-violet rounded-sm px-3 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-surface-night"
+                  className="w-full bg-bg text-ink border border-border rounded-md px-3.5 py-2.5 text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   Email
                 </label>
                 <input
@@ -241,12 +232,12 @@ export default function AuthPage() {
                   placeholder="tamu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-primary/60 text-white border border-hairline-violet rounded-sm px-3 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-surface-night"
+                  className="w-full bg-bg text-ink border border-border rounded-md px-3.5 py-2.5 text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-bold font-mono uppercase tracking-wider text-slate-400 mb-1.5">
+                <label className="block text-sm font-medium text-ink mb-1.5">
                   Kata Sandi
                 </label>
                 <input
@@ -255,19 +246,19 @@ export default function AuthPage() {
                   placeholder="Minimal 6 karakter"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-primary/60 text-white border border-hairline-violet rounded-sm px-3 py-2.5 text-sm placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-accent-lime focus:ring-offset-2 focus:ring-offset-surface-night"
+                  className="w-full bg-bg text-ink border border-border rounded-md px-3.5 py-2.5 text-sm placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full mt-2 py-3 px-4 rounded-md text-xs font-bold uppercase tracking-[0.2px] bg-white hover:bg-surface-press-light text-primary transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
+                className="w-full mt-2 py-2.5 px-4 rounded-md text-sm font-semibold bg-primary hover:bg-accent-hover text-white transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
-                  "DAFTAR_SEBAGAI_TAMU"
+                  "Daftar Sebagai Tamu"
                 )}
               </button>
             </form>

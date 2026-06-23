@@ -10,34 +10,79 @@ export async function GET(request: Request) {
       return NextResponse.json({ message: "Tidak diizinkan" }, { status: 401 });
     }
 
-    let whereClause: any = {};
+    const whereClause: Record<string, unknown> = {};
     if (user.role === "STUDENT" || user.role === "GUEST") {
       whereClause.userId = user.userId;
     }
 
-    const borrowings = await prisma.borrowing.findMany({
-      where: whereClause,
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
-        },
-        book: {
-          select: {
-            id: true,
-            title: true,
-            author: true,
-          },
-        },
-      },
-      orderBy: { borrowDate: "desc" },
+    // Lazy check: Auto-return overdue digital books
+    const now = new Date();
+    const overdueDigitalBorrowings = await prisma.borrowing.findMany({
+      where: {
+        status: "BORROWED",
+        dueDate: { lt: now },
+        book: { type: "DIGITAL" }
+      }
     });
 
-    return NextResponse.json(borrowings);
+    if (overdueDigitalBorrowings.length > 0) {
+      for (const b of overdueDigitalBorrowings) {
+        await prisma.$transaction([
+          prisma.borrowing.update({
+            where: { id: b.id },
+            data: { status: "RETURNED", returnDate: now }
+          }),
+          prisma.book.update({
+            where: { id: b.bookId },
+            data: { stock: { increment: 1 } }
+          })
+        ]);
+      }
+    }
+
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "20");
+    const skip = (page - 1) * limit;
+
+    const [total, borrowings] = await Promise.all([
+      prisma.borrowing.count({ where: whereClause }),
+      prisma.borrowing.findMany({
+        where: whereClause,
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          book: {
+            select: {
+              id: true,
+              title: true,
+              author: true,
+              type: true,
+              pdfUrl: true,
+            },
+          },
+        },
+        orderBy: { borrowDate: "desc" },
+        skip,
+        take: limit,
+      })
+    ]);
+
+    return NextResponse.json({
+      data: borrowings,
+      metadata: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit)
+      }
+    });
   } catch (error) {
     console.error("GET borrowings error:", error);
     return NextResponse.json(

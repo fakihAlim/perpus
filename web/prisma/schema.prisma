@@ -31,31 +31,54 @@ enum ThesisStatus {
   REJECTED
 }
 
+enum BookType {
+  PHYSICAL
+  DIGITAL
+}
+
+enum ReservationStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
 model User {
-  id         Int        @id @default(autoincrement())
-  name       String
-  email      String     @unique
-  password   String
-  role       Role       @default(STUDENT)
-  status     UserStatus @default(APPROVED) // Mahasiswa default APPROVED, Tamu/GUEST default PENDING
-  createdAt  DateTime   @default(now())
-  updatedAt  DateTime   @updatedAt
-  borrowings Borrowing[]
-  theses     Thesis[]
+  id           Int           @id @default(autoincrement())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(STUDENT)
+  status       UserStatus    @default(APPROVED) // Mahasiswa default APPROVED, Tamu/GUEST default PENDING
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  borrowings   Borrowing[]
+  theses       Thesis[]
+  reservations Reservation[]
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  books       Book[]
 }
 
 model Book {
-  id         Int         @id @default(autoincrement())
-  title      String
-  author     String
-  publisher  String
-  year       Int
-  isbn       String?
-  stock      Int         @default(1)
-  coverUrl   String?
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
-  borrowings Borrowing[]
+  id           Int           @id @default(autoincrement())
+  title        String
+  author       String
+  publisher    String
+  year         Int
+  isbn         String?
+  stock        Int           @default(1)
+  type         BookType      @default(PHYSICAL)
+  coverUrl     String?
+  pdfUrl       String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  categories   Category[]
+  borrowings   Borrowing[]
+  reservations Reservation[]
 }
 
 model Borrowing {
@@ -71,21 +94,31 @@ model Borrowing {
   book       Book         @relation(fields: [bookId], references: [id], onDelete: Cascade)
 }
 
+model Reservation {
+  id          Int               @id @default(autoincrement())
+  userId      Int
+  bookId      Int
+  reserveDate DateTime          @default(now())
+  status      ReservationStatus @default(PENDING)
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book              @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
 model Thesis {
-  id          Int          @id @default(autoincrement())
+  id          Int             @id @default(autoincrement())
   title       String
-  abstract    String       @db.Text
+  abstract    String          @db.Text
   authorName  String
   advisor1    String
   advisor2    String?
   department  String
   year        Int
   pdfPath     String?
-  status      ThesisStatus @default(PENDING)
+  status      ThesisStatus    @default(PENDING)
   uploaderId  Int
-  uploader    User         @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
+  uploader    User            @relation(fields: [uploaderId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
   chapters    ThesisChapter[]
 }
 
