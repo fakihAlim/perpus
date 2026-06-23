@@ -22,109 +22,32 @@ interface Book {
   coverUrl: string | null;
 }
 
-interface Thesis {
-  id: number;
-  title: string;
-  abstract: string;
-  authorName: string;
-  advisor1: string;
-  advisor2: string | null;
-  department: string;
-  year: number;
-  pdfPath: string | null;
-  status: string;
-  createdAt: string;
-  chapters?: ThesisChapter[];
-}
-
-interface ThesisChapter {
-  id: number;
-  chapterName: string;
-  pdfPath: string;
-  isLocked: boolean;
-}
-
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"books" | "theses">("books");
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
-  const [theses, setTheses] = useState<Thesis[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<{ name: string; role: string } | null>(null);
-  const [selectedThesis, setSelectedThesis] = useState<Thesis | null>(null);
-  const [actionMsg, setActionMsg] = useState("");
-
-  const fetchCategories = async () => {
-    try {
-      const res = await fetch("/api/categories");
-      if (res.ok) setCategories(await res.json());
-    } catch (e) {}
-  };
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      if (activeTab === "books") {
-        let url = `/api/books?q=${encodeURIComponent(searchQuery)}`;
-        if (selectedCategory) url += `&categoryId=${selectedCategory}`;
-        const res = await fetch(url);
-        if (res.ok) {
-          const json = await res.json();
-          setBooks(json.data || json);
-        }
-      } else {
-        const res = await fetch(`/api/thesis?q=${encodeURIComponent(searchQuery)}`);
-        if (res.ok) {
-          const json = await res.json();
-          setTheses(json.data || json);
-        }
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-    fetchCategories();
+    fetchBooks();
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, searchQuery, selectedCategory]);
-
-  const handleReserveBook = async (bookId: number) => {
-    if (!user) {
-      window.location.href = "/login";
-      return;
-    }
-    const token = localStorage.getItem("token");
+  const fetchBooks = async () => {
+    setLoading(true);
     try {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ bookId })
-      });
-      const data = await res.json();
+      const res = await fetch(`/api/books?limit=4`);
       if (res.ok) {
-        setActionMsg("Reservasi berhasil dibuat");
-        setTimeout(() => setActionMsg(""), 3000);
-      } else {
-        alert(data.message || "Gagal melakukan reservasi");
+        const json = await res.json();
+        setBooks(json.data || json);
       }
-    } catch (e) {
-      alert("Terjadi kesalahan server");
+    } catch (error) {
+      console.error("Failed to fetch books:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -136,374 +59,419 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-bg flex flex-col font-sans">
-
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-border bg-bg/95 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    <div className="min-h-screen font-sans bg-white selection:bg-yellow-100 selection:text-slate-900">
+      
+      {/* 1. HEADER */}
+      <header className="sticky top-0 z-50 w-full bg-slate-100 border-b border-slate-200">
+        <div className="max-w-[1400px] mx-auto px-6 h-[72px] flex items-center justify-between">
           <Link href="/" className="flex items-center">
-            <span className="text-xl font-bold tracking-tight text-primary">
-              PerpusDigital
+            <span className="text-xl font-bold tracking-tight text-slate-900">
+              Lexicon Library
             </span>
           </Link>
+
+          <nav className="hidden md:flex items-center gap-8">
+            <div className="flex flex-col items-center">
+              <Link href="#" className="text-[11px] font-bold tracking-widest uppercase text-slate-900 pb-1">
+                CATALOG
+              </Link>
+              <div className="w-full h-0.5 bg-yellow-500 rounded-full"></div>
+            </div>
+            <Link href="#" className="text-[11px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">
+              MEMBERSHIP
+            </Link>
+            <Link href="#" className="text-[11px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">
+              EVENTS
+            </Link>
+            <Link href="#" className="text-[11px] font-bold tracking-widest uppercase text-slate-500 hover:text-slate-900 transition-colors">
+              ABOUT US
+            </Link>
+          </nav>
 
           <div className="flex items-center gap-4">
             {user ? (
               <div className="flex items-center gap-4">
-                <span className="text-sm text-ink-secondary hidden md:inline-block">
-                  {user.name}
-                </span>
                 <Link
                   href={user.role === "STUDENT" ? "/mahasiswa" : "/admin"}
-                  className="bg-primary text-white hover:bg-accent-hover transition-colors rounded-md px-4 py-2 text-sm font-medium"
+                  className="bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded px-6 py-2.5 text-xs font-bold tracking-widest uppercase"
                 >
-                  Dashboard
+                  DASHBOARD
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="text-sm text-ink-muted hover:text-ink transition-colors"
+                  className="text-[11px] font-bold tracking-widest uppercase text-slate-500 hover:text-red-600 transition-colors"
                 >
-                  Keluar
+                  LOGOUT
                 </button>
               </div>
             ) : (
               <Link
                 href="/login"
-                className="bg-primary text-white hover:bg-accent-hover transition-colors rounded-md px-4 py-2.5 text-sm font-medium"
+                className="bg-slate-900 text-white hover:bg-slate-800 transition-colors rounded px-6 py-2.5 text-[11px] font-bold tracking-widest uppercase"
               >
-                Masuk / Daftar
+                MEMBER LOGIN
               </Link>
             )}
           </div>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="border-b border-border bg-bg-subtle py-16 sm:py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-ink mb-4 max-w-3xl mx-auto leading-tight">
-            Katalog Buku & Repository Skripsi
+      {/* 2. HERO SECTION */}
+      <section className="bg-slate-600 py-24 md:py-32 flex flex-col items-center justify-center relative overflow-hidden">
+        {/* Subtle background pattern or noise could go here */}
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
+          <h1 className="text-4xl md:text-5xl lg:text-[54px] font-bold text-white mb-6 leading-[1.1] tracking-tight">
+            Buka Jendela Dunia di <span className="text-yellow-400">Lexicon <br className="hidden md:block"/>Library</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-base text-ink-secondary mb-8">
-            Akses katalog buku perpustakaan dan repositori karya ilmiah mahasiswa secara online.
+          <p className="text-slate-200 text-lg md:text-xl italic mb-12 font-serif">
+            "Akses ribuan koleksi buku, jurnal digital, dan ruang kolaborasi modern dalam satu tempat."
           </p>
 
-          {/* Search Box */}
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-2xl mx-auto bg-white rounded-full p-2 flex items-center shadow-2xl">
+            <div className="pl-5 text-slate-400">
+              <span className="font-bold text-lg">O</span> {/* Mock Icon */}
+            </div>
             <input
               type="text"
-              placeholder={
-                activeTab === "books"
-                  ? "Cari buku berdasarkan judul, penulis, penerbit..."
-                  : "Cari skripsi berdasarkan judul, jurusan, penulis..."
-              }
+              placeholder="Cari judul buku, pengarang, atau ISBN..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-bg border border-border rounded-lg px-4 py-3 text-sm text-ink placeholder-ink-muted focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+              className="flex-1 bg-transparent px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none"
             />
+            <button className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-[11px] uppercase tracking-widest px-8 py-3.5 rounded-full transition-colors">
+              CARI
+            </button>
           </div>
         </div>
       </section>
 
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Navigation Tabs */}
-        <div className="flex items-center border-b border-border mb-8">
-          <button
-            onClick={() => {
-              setActiveTab("books");
-              setSearchQuery("");
-            }}
-            className={`px-5 py-3.5 border-b-2 text-sm font-medium transition-colors ${
-              activeTab === "books"
-                ? "border-primary text-primary"
-                : "border-transparent text-ink-muted hover:text-ink"
-            }`}
-          >
-            Katalog Buku
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("theses");
-              setSearchQuery("");
-            }}
-            className={`px-5 py-3.5 border-b-2 text-sm font-medium transition-colors ${
-              activeTab === "theses"
-                ? "border-primary text-primary"
-                : "border-transparent text-ink-muted hover:text-ink"
-            }`}
-          >
-            Repository Skripsi
-          </button>
+      {/* 3. KOLEKSI UNGGULAN */}
+      <section className="py-20 max-w-[1400px] mx-auto px-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+          <div>
+            <h4 className="text-[10px] font-extrabold text-yellow-500 uppercase tracking-[0.2em] mb-2">
+              RUANG KOLEKSI
+            </h4>
+            <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+              Koleksi Unggulan
+            </h2>
+          </div>
+          <Link href="/login" className="text-xs font-bold text-slate-600 hover:text-slate-900 uppercase tracking-widest flex items-center gap-2">
+            LIHAT SEMUA <span className="text-lg leading-none">&rarr;</span>
+          </Link>
         </div>
 
-        {/* Action Message */}
-        {actionMsg && (
-          <div className="mb-6 bg-success-bg border border-success/20 text-success p-3 rounded-md text-sm">
-            {actionMsg}
-          </div>
-        )}
-
-        {/* Category Filter */}
-        {activeTab === "books" && categories.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                selectedCategory === null
-                  ? "bg-primary text-white border-primary"
-                  : "bg-bg text-ink-secondary border-border hover:border-border-strong"
-              }`}
-            >
-              Semua
-            </button>
-            {categories.map(c => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedCategory(c.id)}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium border transition-colors ${
-                  selectedCategory === c.id
-                    ? "bg-primary text-white border-primary"
-                    : "bg-bg text-ink-secondary border-border hover:border-border-strong"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Loading */}
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-3">
-            <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-ink-muted text-sm">Memuat data...</p>
-          </div>
-        ) : activeTab === "books" ? (
-          books.length === 0 ? (
-            <div className="text-center py-20 bg-bg-subtle border border-dashed border-border rounded-lg">
-              <p className="text-ink-muted text-sm">Tidak ada buku yang ditemukan.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {books.map((book) => (
-                <div
-                  key={book.id}
-                  className="bg-bg rounded-lg border border-border overflow-hidden hover:shadow-md transition-shadow flex flex-col"
-                >
-                  <div className="aspect-[4/3] w-full bg-bg-muted relative overflow-hidden flex items-center justify-center">
-                    {book.coverUrl ? (
-                      <img
-                        src={book.coverUrl}
-                        alt={book.title}
-                        className="object-cover w-full h-full"
-                      />
-                    ) : (
-                      <span className="text-sm text-ink-muted">Tidak ada cover</span>
-                    )}
-                    <span
-                      className={`absolute top-2 right-2 text-xs font-medium px-2 py-0.5 rounded ${
-                        book.type === "DIGITAL"
-                          ? "bg-info-bg text-info"
-                          : book.stock > 0
-                            ? "bg-success-bg text-success"
-                            : "bg-danger-bg text-danger"
-                      }`}
-                    >
-                      {book.type === "DIGITAL" ? "Digital" : (book.stock > 0 ? `Stok: ${book.stock}` : "Habis")}
-                    </span>
-                  </div>
-
-                  <div className="p-4 flex-1 flex flex-col justify-between">
-                    <div>
-                      <h3 className="text-sm font-semibold text-ink line-clamp-2">
-                        {book.title}
-                      </h3>
-                      <p className="text-sm text-ink-secondary mt-1">{book.author}</p>
-                      <p className="text-sm text-ink-muted mt-0.5">{book.publisher}</p>
-                    </div>
-                    <div className="pt-3 mt-3 border-t border-border flex flex-col gap-2">
-                      <div className="flex items-center justify-between text-xs text-ink-muted">
-                        <span>ISBN: {book.isbn || "-"}</span>
-                        <span>{book.year}</span>
-                      </div>
-                      
-                      {book.type === "DIGITAL" && book.pdfUrl ? (
-                        <a href={book.pdfUrl} target="_blank" rel="noopener noreferrer" className="block w-full text-center px-3 py-2 bg-primary text-white rounded-md text-sm font-medium hover:bg-accent-hover transition-colors">
-                          Baca PDF
-                        </a>
-                      ) : (
-                        <button onClick={() => handleReserveBook(book.id)} disabled={book.stock > 0} className="block w-full text-center px-3 py-2 bg-bg-muted text-ink rounded-md text-sm font-medium hover:bg-border transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-                          {book.stock > 0 ? "Tersedia (Pinjam Offline)" : "Reservasi Antrian"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )
+          <div className="py-20 text-center text-slate-500 font-medium">Memuat koleksi...</div>
         ) : (
-          theses.length === 0 ? (
-            <div className="text-center py-20 bg-bg-subtle border border-dashed border-border rounded-lg">
-              <p className="text-ink-muted text-sm">Tidak ada skripsi yang ditemukan.</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {theses.map((thesis) => (
-                <div
-                  key={thesis.id}
-                  className="bg-bg rounded-lg border border-border p-5 hover:shadow-sm transition-shadow flex flex-col md:flex-row md:items-start justify-between gap-5"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 flex-wrap mb-2">
-                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary-lighter text-primary">
-                        {thesis.department}
-                      </span>
-                      <span className="text-sm text-ink-muted">Tahun: {thesis.year}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Card 1: Map from actual books if available, otherwise static */}
+            {books.slice(0, 3).map((book, index) => (
+              <div key={book.id} className="group flex flex-col cursor-pointer">
+                <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-200 shadow-sm">
+                  {book.coverUrl ? (
+                    <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  ) : (
+                    <div className="w-full h-full bg-slate-800 flex items-center justify-center">
+                      <span className="text-slate-700 text-6xl font-serif">L</span>
                     </div>
-                    <h3 className="text-base font-semibold text-ink mb-2">{thesis.title}</h3>
-                    <p className="text-sm text-ink-secondary mb-3">
-                      Penulis: <strong className="text-ink">{thesis.authorName}</strong> &mdash; Pembimbing:{" "}
-                      {thesis.advisor1} {thesis.advisor2 ? `& ${thesis.advisor2}` : ""}
+                  )}
+                  {/* Dark gradient overlay for text */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent flex flex-col justify-end p-8">
+                    <h3 className="text-white text-xl font-bold mb-1 leading-snug">
+                      {book.title}
+                    </h3>
+                    <p className="text-slate-300 text-sm font-medium">
+                      {book.author}
                     </p>
-                    <div className="bg-bg-subtle p-3 rounded-md border border-border">
-                      <p className="text-xs font-medium text-ink-secondary mb-1">Abstrak</p>
-                      <p className="text-sm text-ink-secondary leading-relaxed line-clamp-3">
-                        {thesis.abstract}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-stretch md:w-40 gap-2 shrink-0">
-                    <button
-                      onClick={() => setSelectedThesis(thesis)}
-                      className="px-4 py-2.5 text-center text-sm font-medium rounded-md bg-primary hover:bg-accent-hover text-white transition-colors cursor-pointer"
-                    >
-                      Lihat Detail
-                    </button>
                   </div>
                 </div>
-              ))}
-            </div>
-          )
+                {/* Under image pills */}
+                <div className="border border-t-0 border-slate-200 p-4 bg-white flex flex-wrap gap-2">
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">
+                    {book.type === "DIGITAL" ? "E-JOURNAL" : "FISIK"}
+                  </span>
+                  <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">
+                    {book.stock > 0 ? `${book.stock} TERSEDIA` : "HABIS"}
+                  </span>
+                </div>
+              </div>
+            ))}
+            {/* Fallback Static Cards if db is empty */}
+            {books.length === 0 && (
+              <>
+                <div className="group flex flex-col cursor-pointer">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-slate-900/10 flex flex-col justify-end p-8">
+                      <h3 className="text-white text-xl font-bold mb-1 leading-snug">Fiksi Populer</h3>
+                      <p className="text-slate-300 text-sm font-medium">Eksplorasi imajinasi tanpa batas.</p>
+                    </div>
+                  </div>
+                  <div className="border border-t-0 border-slate-200 p-4 bg-white flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">TRENDING</span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">5,200+ JUDUL</span>
+                  </div>
+                </div>
+                <div className="group flex flex-col cursor-pointer">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-slate-900/10 flex flex-col justify-end p-8">
+                      <h3 className="text-white text-xl font-bold mb-1 leading-snug">Teknologi & Sains</h3>
+                      <p className="text-slate-300 text-sm font-medium">Wawasan masa depan di tangan Anda.</p>
+                    </div>
+                  </div>
+                  <div className="border border-t-0 border-slate-200 p-4 bg-white flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">E-JOURNAL</span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">TERBARU</span>
+                  </div>
+                </div>
+                <div className="group flex flex-col cursor-pointer">
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-slate-800 shadow-sm">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/40 to-slate-900/10 flex flex-col justify-end p-8">
+                      <h3 className="text-white text-xl font-bold mb-1 leading-snug">Sastra Klasik</h3>
+                      <p className="text-slate-300 text-sm font-medium">Warisan pemikiran lintas zaman.</p>
+                    </div>
+                  </div>
+                  <div className="border border-t-0 border-slate-200 p-4 bg-white flex flex-wrap gap-2">
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">ARSIP</span>
+                    <span className="px-3 py-1 bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-widest">LANGKA</span>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         )}
-      </main>
+      </section>
 
-      {/* Footer */}
-      <footer className="border-t border-border bg-bg-subtle py-8 text-center text-sm text-ink-muted">
-        <p>&copy; {new Date().getFullYear()} PerpusDigital. Hak Cipta Dilindungi Undang-Undang.</p>
+      {/* 4. FITUR KEANGGOTAAN */}
+      <section className="bg-[#050B14] py-24 border-y border-slate-800 overflow-hidden">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          
+          {/* Kiri: Teks & Fitur */}
+          <div>
+            <h4 className="text-[10px] font-extrabold text-yellow-500 uppercase tracking-[0.2em] mb-3">
+              GABUNG BERSAMA KAMI
+            </h4>
+            <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 tracking-tight">
+              Eksklusivitas untuk Pencari Ilmu
+            </h2>
+
+            <div className="space-y-8 mb-12">
+              <div className="flex gap-5">
+                <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="w-4 h-4 bg-yellow-500 rounded-sm"></div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">Peminjaman Tak Terbatas</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">Akses fisik dan digital ke seluruh katalog kami tanpa batasan jumlah per bulan.</p>
+                </div>
+              </div>
+              <div className="flex gap-5">
+                <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="w-4 h-4 border-2 border-yellow-500 rounded-sm"></div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">Akses Jurnal Eksklusif</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">Kerja sama dengan Elsevier, JSTOR, dan Springer untuk referensi akademik terpercaya.</p>
+                </div>
+              </div>
+              <div className="flex gap-5">
+                <div className="w-12 h-12 rounded bg-slate-900 border border-slate-800 flex items-center justify-center shrink-0">
+                  <div className="w-4 h-4 bg-yellow-500/20 border border-yellow-500 rounded-full"></div>
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1">Ruang Diskusi Privat</h3>
+                  <p className="text-slate-400 text-sm leading-relaxed">Fasilitas ruang kolaborasi kedap suara dengan dukungan teknologi multimedia modern.</p>
+                </div>
+              </div>
+            </div>
+
+            <Link href="/login" className="inline-block bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-bold text-[11px] uppercase tracking-widest px-8 py-4 rounded transition-colors">
+              DAFTAR KEANGGOTAAN
+            </Link>
+          </div>
+
+          {/* Kanan: Kartu Visual */}
+          <div className="relative flex justify-center lg:justify-end">
+            <div className="absolute inset-0 bg-yellow-500/5 blur-[100px] rounded-full"></div>
+            {/* Outline Card Background */}
+            <div className="relative w-full max-w-[540px] bg-white rounded-2xl shadow-2xl p-6 md:p-8 transform rotate-0 lg:rotate-1 z-10 border border-slate-200">
+              <div className="flex items-center justify-between mb-8">
+                <span className="text-xs font-bold text-slate-500 tracking-widest uppercase">Kartu Member Digital</span>
+                <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                  <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                </div>
+              </div>
+
+              {/* Inside Card */}
+              <div className="w-full aspect-[1.6/1] bg-[#0A1128] rounded-xl overflow-hidden relative shadow-inner flex flex-col justify-between p-8">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-slate-800/30 rounded-full blur-[60px] -mr-20 -mt-20"></div>
+                <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-600/20 rounded-full blur-[40px] -ml-10 -mb-10"></div>
+                
+                <div className="relative z-10">
+                  <p className="text-[10px] text-slate-400 font-bold tracking-[0.2em] uppercase mb-1">LEXICON LIBRARY PLATINUM</p>
+                  <h3 className="text-2xl font-bold text-white tracking-wide">{user ? user.name.toUpperCase() : "ADRIAN MAULANA"}</h3>
+                </div>
+
+                <div className="relative z-10 flex items-end justify-between">
+                  <div className="text-[11px] text-slate-400 tracking-widest font-mono">
+                    ID: {user ? "9021-4201-9999" : "0024-8491-1004"}
+                  </div>
+                  <div className="text-xl font-bold text-yellow-500 tracking-tight">
+                    LEXICON
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em]">Status Keanggotaan</span>
+                <span className="text-xs font-bold text-emerald-500 uppercase tracking-widest">Aktif</span>
+              </div>
+            </div>
+            
+            {/* Decorative outline box behind */}
+            <div className="absolute top-8 left-8 right-[-2rem] bottom-[-2rem] border border-yellow-500/20 rounded-2xl z-0 hidden lg:block"></div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 5. KEGIATAN LITERASI */}
+      <section className="py-24 bg-white">
+        <div className="max-w-[1400px] mx-auto px-6 text-center mb-16">
+          <h4 className="text-[10px] font-extrabold text-yellow-500 uppercase tracking-[0.2em] mb-3">
+            JADWAL MENDATANG
+          </h4>
+          <h2 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+            Kegiatan Literasi & Komunitas
+          </h2>
+        </div>
+
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Acara 1 */}
+          <div className="flex flex-col sm:flex-row bg-white border border-slate-200 rounded-lg overflow-hidden group hover:shadow-lg transition-all">
+            <div className="w-full sm:w-48 h-48 sm:h-auto bg-slate-800 relative shrink-0 overflow-hidden">
+              <div className="absolute inset-0 bg-slate-700"></div> {/* Placeholder image background */}
+              {/* Fake image overlay pattern */}
+              <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle,_#ffffff_1px,_transparent_1px)] [background-size:10px_10px]"></div>
+              
+              <div className="absolute top-0 left-0 bg-white px-4 py-3 text-center border-b border-r border-slate-200">
+                <span className="block text-2xl font-bold text-slate-900 leading-none">24</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">OCT</span>
+              </div>
+            </div>
+            <div className="p-8 flex flex-col justify-center">
+              <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-2">SEMINAR TEKNOLOGI</span>
+              <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">Bedah Buku: Masa Depan AI</h3>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed line-clamp-2">
+                Mendalami implikasi kecerdasan buatan dalam literasi masa depan bersama pakar teknologi.
+              </p>
+              <div className="flex items-center gap-6 mt-auto">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <span className="font-serif">🕒</span> 13:00 - 15:00
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <span className="font-serif">📍</span> Ruang Diskusi Utama
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Acara 2 */}
+          <div className="flex flex-col sm:flex-row bg-white border border-slate-200 rounded-lg overflow-hidden group hover:shadow-lg transition-all">
+            <div className="w-full sm:w-48 h-48 sm:h-auto bg-slate-800 relative shrink-0 overflow-hidden">
+              <div className="absolute inset-0 bg-slate-600"></div>
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle,_#ffffff_1px,_transparent_1px)] [background-size:16px_16px]"></div>
+              
+              <div className="absolute top-0 left-0 bg-white px-4 py-3 text-center border-b border-r border-slate-200">
+                <span className="block text-2xl font-bold text-slate-900 leading-none">12</span>
+                <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">NOV</span>
+              </div>
+            </div>
+            <div className="p-8 flex flex-col justify-center">
+              <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest mb-2">WORKSHOP KREATIF</span>
+              <h3 className="text-xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">Workshop Penulisan Kreatif</h3>
+              <p className="text-sm text-slate-600 mb-6 leading-relaxed line-clamp-2">
+                Asah bakat menulismu dengan panduan langsung dari penulis profesional peraih penghargaan.
+              </p>
+              <div className="flex items-center gap-6 mt-auto">
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <span className="font-serif">🕒</span> 09:00 - 12:00
+                </div>
+                <div className="flex items-center gap-2 text-xs font-semibold text-slate-500">
+                  <span className="font-serif">📍</span> Ruang Kolaborasi Atas
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      {/* 6. FOOTER */}
+      <footer className="bg-[#050B14] pt-20 pb-8 border-t border-slate-800">
+        <div className="max-w-[1400px] mx-auto px-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12 mb-16">
+          
+          {/* Kolom 1: Profil (Lebih Lebar) */}
+          <div className="lg:col-span-2 pr-8">
+            <h3 className="text-xl font-bold text-white mb-6">Lexicon Library</h3>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">
+              Otoritas perpustakaan modern yang didedikasikan untuk preservasi ilmu pengetahuan dan pengembangan komunitas intelektual.
+            </p>
+          </div>
+
+          {/* Kolom 2: Layanan */}
+          <div>
+            <h4 className="text-[10px] font-bold text-yellow-500 uppercase tracking-[0.2em] mb-6">LAYANAN</h4>
+            <ul className="space-y-4">
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Katalog Online</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Library Services</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Digital Archives</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Member Support</Link></li>
+            </ul>
+          </div>
+
+          {/* Kolom 3: Informasi */}
+          <div>
+            <h4 className="text-[10px] font-bold text-yellow-500 uppercase tracking-[0.2em] mb-6">INFORMASI</h4>
+            <ul className="space-y-4">
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Contact Us</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Opening Hours</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Privacy Policy</Link></li>
+              <li><Link href="#" className="text-sm text-slate-400 hover:text-white transition-colors">Terms of Use</Link></li>
+            </ul>
+          </div>
+
+          {/* Kolom 4: Lokasi */}
+          <div>
+            <h4 className="text-[10px] font-bold text-yellow-500 uppercase tracking-[0.2em] mb-6">LOKASI</h4>
+            <p className="text-sm text-slate-400 leading-relaxed mb-6">
+              Jl. Aksara No. 42, Kompleks Edukasi<br />
+              Jakarta Pusat, 10110<br />
+              Indonesia
+            </p>
+            {/* Mock Social Icons using Text */}
+            <div className="flex gap-4">
+              <a href="#" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-xs font-serif">in</a>
+              <a href="#" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-xs font-serif">ig</a>
+              <a href="#" className="w-8 h-8 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white transition-colors text-xs font-serif">fb</a>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Copyright */}
+        <div className="max-w-[1400px] mx-auto px-6 pt-8 border-t border-slate-800 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-xs text-slate-600">
+            &copy; {new Date().getFullYear()} Lexicon Library Authority. All rights reserved.
+          </p>
+          <div className="flex gap-6">
+            <Link href="#" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Facebook</Link>
+            <Link href="#" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">Instagram</Link>
+            <Link href="#" className="text-xs text-slate-600 hover:text-slate-400 transition-colors">LinkedIn</Link>
+          </div>
+        </div>
       </footer>
 
-      {/* Detail Thesis Modal */}
-      {selectedThesis && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <div className="bg-bg border border-border rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6 relative">
-            <button
-              onClick={() => setSelectedThesis(null)}
-              className="absolute top-4 right-4 text-sm text-ink-muted hover:text-ink transition-colors"
-            >
-              Tutup
-            </button>
-
-            <div>
-              <span className="text-xs font-medium px-2 py-0.5 rounded bg-primary-lighter text-primary">
-                {selectedThesis.department}
-              </span>
-              <h2 className="text-lg font-semibold text-ink mt-3 mb-2 leading-snug">
-                {selectedThesis.title}
-              </h2>
-              <p className="text-sm text-ink-secondary mb-4">
-                Penulis: <strong className="text-ink">{selectedThesis.authorName}</strong> &mdash; Tahun: {selectedThesis.year}
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-ink-secondary mb-5 bg-bg-subtle p-4 border border-border rounded-md">
-                <div>
-                  <span className="text-xs font-medium text-ink-muted block">Dosen Pembimbing 1</span>
-                  <span className="text-ink block mt-0.5">{selectedThesis.advisor1}</span>
-                </div>
-                <div>
-                  <span className="text-xs font-medium text-ink-muted block">Dosen Pembimbing 2</span>
-                  <span className="text-ink block mt-0.5">{selectedThesis.advisor2 || "-"}</span>
-                </div>
-              </div>
-
-              <div className="bg-bg-subtle p-4 rounded-md border border-border mb-5">
-                <p className="text-xs font-medium text-ink-muted mb-1">Abstrak</p>
-                <p className="text-sm text-ink-secondary leading-relaxed max-h-40 overflow-y-auto">
-                  {selectedThesis.abstract}
-                </p>
-              </div>
-
-              {/* Chapters List */}
-              <div className="border-t border-border pt-5">
-                <h4 className="text-sm font-semibold text-ink mb-4">
-                  Daftar Bab & Unduh Berkas
-                </h4>
-
-                <div className="space-y-2">
-                  {!selectedThesis.chapters || selectedThesis.chapters.length === 0 ? (
-                    <div className="flex items-center justify-between p-3 bg-bg-subtle border border-border rounded-md">
-                      <span className="text-sm text-ink">Dokumen Lengkap (Full Text)</span>
-                      {selectedThesis.pdfPath ? (
-                        <a
-                          href={selectedThesis.pdfPath}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary hover:bg-accent-hover text-white transition-colors"
-                        >
-                          Buka PDF
-                        </a>
-                      ) : (
-                        <span className="text-sm text-ink-muted">Tidak tersedia</span>
-                      )}
-                    </div>
-                  ) : (
-                    selectedThesis.chapters.map((ch) => {
-                      const isChapterLocked = ch.isLocked;
-                      const canAccess = !isChapterLocked || user !== null;
-
-                      return (
-                        <div
-                          key={ch.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 bg-bg-subtle border border-border rounded-md"
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-ink">{ch.chapterName}</span>
-                            {isChapterLocked && (
-                              <span className="text-xs font-medium px-1.5 py-0.5 rounded bg-warning-bg text-warning">
-                                Terkunci
-                              </span>
-                            )}
-                          </div>
-
-                          {canAccess ? (
-                            <a
-                              href={ch.pdfPath}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary hover:bg-accent-hover text-white transition-colors shrink-0"
-                            >
-                              Baca Bab
-                            </a>
-                          ) : (
-                            <Link
-                              href="/login"
-                              className="px-3 py-1.5 text-sm font-medium rounded-md bg-bg-muted text-ink-muted border border-border hover:bg-border transition-colors shrink-0"
-                            >
-                              Login untuk Membaca
-                            </Link>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

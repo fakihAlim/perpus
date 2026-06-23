@@ -601,123 +601,319 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans relative">
+    <div className="min-h-screen flex bg-slate-50 font-sans text-slate-900 selection:bg-blue-100 selection:text-blue-900">
       
-      {/* Decorative Starfield background */}
-      <div 
-        className="absolute inset-0 opacity-10 pointer-events-none"
-        style={{
-          backgroundImage: "radial-gradient(circle, #ffffff 1px, transparent 1px)",
-          backgroundSize: "24px 24px"
-        }}
-      />
-
-      {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md relative z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl font-bold tracking-tight font-display text-primary">
-              PERPUS<span className="text-blue-600 font-medium text-sm">_</span>DIGITAL - STAFF
-            </span>
+      {/* SIDEBAR */}
+      <aside className="w-[260px] bg-[#050B14] flex flex-col shrink-0 border-r border-slate-800">
+        <div className="p-6 pb-8 border-b border-slate-800/50">
+          <Link href="/" className="flex flex-col gap-1">
+            <span className="text-xl font-bold text-white tracking-wide">Lexicon Admin</span>
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Central Library System</span>
           </Link>
-
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-slate-500 font-medium text-sm">
-              PETUGAS: <strong className="text-blue-600 font-sans font-medium">{currentUser?.name.toUpperCase()}</strong>
-            </span>
-            <button
-              onClick={handleLogout}
-              className="font-medium text-sm text-xs font-bold uppercase tracking-[0.2px] text-slate-500 hover:text-white px-3 py-1.5 rounded border border-slate-200 bg-slate-200 text-slate-700 transition-colors"
-            >
-              [Exit]
-            </button>
-          </div>
         </div>
-      </header>
 
-      {/* Main Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 relative z-10">
-        {/* Navigation Sidebar/Tabs */}
-        <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-4 mb-6">
+        <nav className="flex-1 py-6 px-4 space-y-1">
           <button
-            onClick={() => setActiveSubTab("borrowings")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-[0.2px] transition-all ${
-              activeSubTab === "borrowings"
-                ? "bg-blue-600 text-white border border-slate-200"
-                : "bg-slate-200 text-slate-700 text-slate-500 hover:text-white"
+            onClick={() => setActiveSubTab("dashboard")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
+              activeSubTab === "dashboard" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
             }`}
           >
-            Peminjaman Buku
-          </button>
-          <button
-            onClick={() => setActiveSubTab("theses")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-[0.2px] transition-all ${
-              activeSubTab === "theses"
-                ? "bg-blue-600 text-white border border-slate-200"
-                : "bg-slate-200 text-slate-700 text-slate-500 hover:text-white"
-            }`}
-          >
-            Verifikasi Skripsi
-          </button>
-          <button
-            onClick={() => setActiveSubTab("guests")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-[0.2px] transition-all ${
-              activeSubTab === "guests"
-                ? "bg-blue-600 text-white border border-slate-200"
-                : "bg-slate-200 text-slate-700 text-slate-500 hover:text-white"
-            }`}
-          >
-            Persetujuan Tamu
+            <span className="text-lg">⊞</span> Dashboard
           </button>
           <button
             onClick={() => setActiveSubTab("books")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-[0.2px] transition-all ${
-              activeSubTab === "books"
-                ? "bg-blue-600 text-white border border-slate-200"
-                : "bg-slate-200 text-slate-700 text-slate-500 hover:text-white"
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
+              activeSubTab === "books" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
             }`}
           >
-            Kelola Buku
+            <span className="text-lg">📚</span> Books
           </button>
+          <button
+            onClick={() => setActiveSubTab("guests")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
+              activeSubTab === "guests" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+            }`}
+          >
+            <span className="text-lg">👥</span> Members
+          </button>
+          <button
+            onClick={() => setActiveSubTab("borrowings")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
+              activeSubTab === "borrowings" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+            }`}
+          >
+            <span className="text-lg">⇄</span> Transactions
+          </button>
+          <button
+            onClick={() => setActiveSubTab("theses")}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-semibold transition-all ${
+              activeSubTab === "theses" ? "bg-white text-slate-900 shadow-sm" : "text-slate-400 hover:bg-slate-800/50 hover:text-white"
+            }`}
+          >
+            <span className="text-lg">📑</span> Reports
+          </button>
+        </nav>
+
+        <div className="p-4 border-t border-slate-800 mt-auto bg-slate-900/20">
+          <div className="flex items-center gap-3 px-2 py-2">
+            <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+              <span className="text-sm font-bold text-white">{currentUser?.name.charAt(0).toUpperCase()}</span>
+            </div>
+            <div className="flex flex-col">
+              <span className="text-sm font-bold text-white leading-tight">{currentUser?.name}</span>
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{currentUser?.role === "ADMIN" ? "Primary Access" : "Staff"}</span>
+            </div>
+            <button onClick={handleLogout} className="ml-auto text-slate-500 hover:text-red-400 text-lg" title="Logout">
+              ⏻
+            </button>
+          </div>
         </div>
+      </aside>
 
-        {/* Action/Error Alerts */}
-        {actionMsg && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-700 p-4 rounded text-xs font-medium text-sm uppercase tracking-[0.2px]">
-            [SUCCESS]: {actionMsg}
+      {/* MAIN CONTENT AREA */}
+      <div className="flex-1 flex flex-col h-screen overflow-hidden">
+        
+        {/* TOP BAR */}
+        <header className="h-[72px] bg-white border-b border-slate-200 flex items-center justify-between px-8 shrink-0">
+          <div className="flex-1 max-w-xl">
+            <div className="relative flex items-center w-full">
+              <span className="absolute left-4 text-slate-400 text-lg">🔍</span>
+              <input 
+                type="text" 
+                placeholder="Search catalog, members, or IDs..." 
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg pl-12 pr-4 py-2.5 text-sm font-medium text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all"
+              />
+            </div>
           </div>
-        )}
-        {errorMsg && (
-          <div className="mb-6 bg-rose-50 border border-rose-200 text-rose-700 p-4 rounded text-xs font-medium text-sm uppercase tracking-[0.2px]">
-            [ERROR]: {errorMsg}
+          
+          <div className="flex items-center gap-6 ml-8 hidden md:flex">
+            <button className="relative text-slate-400 hover:text-slate-600 transition-colors">
+              <span className="text-xl">🔔</span>
+              <span className="absolute top-0.5 right-0.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+            </button>
+            <button className="text-slate-400 hover:text-slate-600 transition-colors text-xl">
+              <span className="text-xl">❓</span>
+            </button>
+            <div className="h-6 w-px bg-slate-200 mx-2"></div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">MANAGEMENT SYSTEM</span>
+              <div className="w-8 h-8 rounded bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm shadow-sm">
+                👤
+              </div>
+            </div>
           </div>
-        )}
+        </header>
 
-        {/* Dynamic Tab Render */}
+        {/* SCROLLABLE MAIN */}
+        <main className="flex-1 overflow-y-auto p-4 md:p-8 bg-slate-50 relative">
+          
+          {actionMsg && (
+            <div className="mb-6 bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg text-sm font-bold shadow-sm animate-pulse z-50 relative">
+              {actionMsg}
+            </div>
+          )}
+          {errorMsg && (
+            <div className="mb-6 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm font-bold shadow-sm animate-pulse z-50 relative">
+              {errorMsg}
+            </div>
+          )}
+
+          {/* Dynamic Tab Render */}
         {loading ? (
           <div className="text-center py-20 text-slate-500 font-medium text-sm text-xs uppercase tracking-[0.2px]">PROCESSING_DATA...</div>
         
         ) : activeSubTab === "dashboard" ? (
-          /* Dashboard Tab */
-          <div className="space-y-6">
-            <h3 className="text-xl font-bold text-slate-900">Ringkasan Sistem</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[
-                { label: "Total Buku", value: stats?.totalBooks || 0, color: "bg-blue-50 text-blue-600" },
-                { label: "Total Anggota Mahasiswa", value: stats?.totalStudents || 0, color: "bg-emerald-50 text-emerald-600" },
-                { label: "Peminjaman Aktif", value: stats?.totalActiveBorrowings || 0, color: "bg-amber-50 text-amber-600" },
-                { label: "Peminjaman Terlambat", value: stats?.totalOverdueBorrowings || 0, color: "bg-red-50 text-red-600" },
-                { label: "Skripsi Menunggu Validasi", value: stats?.totalPendingTheses || 0, color: "bg-purple-50 text-purple-600" },
-                { label: "Reservasi Menunggu", value: stats?.totalPendingReservations || 0, color: "bg-cyan-50 text-cyan-600" }
-              ].map((stat, i) => (
-                <div key={i} className="p-6 bg-bg border border-border rounded-xl shadow-sm hover:shadow transition-shadow">
-                  <div className="text-sm font-medium text-slate-500 mb-2">{stat.label}</div>
-                  <div className={`text-3xl font-bold ${stat.color.split(' ')[1]}`}>{stat.value}</div>
+            /* -- LEXICON DASHBOARD VIEW -- */
+            <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {/* Header Dashboard */}
+              <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-8">
+                <div>
+                  <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-1">
+                    Welcome back, {currentUser?.name || "Admin"}
+                  </h1>
+                  <p className="text-slate-500 text-sm font-medium">
+                    Lexicon Central Branch is currently at 84% capacity.
+                  </p>
                 </div>
-              ))}
+                <div className="text-left lg:text-right">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">CURRENT DATE</span>
+                  <div className="text-slate-900 font-bold">
+                    {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats Row */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                {/* Total Books */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">TOTAL BOOKS</span>
+                    <span className="text-slate-400">📚</span>
+                  </div>
+                  <div className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+                    {stats?.totalBooks?.toLocaleString() || "12,482"}
+                  </div>
+                  <div className="text-xs font-bold text-emerald-600 flex items-center gap-1">
+                    <span>↑</span> 120 this month
+                  </div>
+                </div>
+                {/* Active Members */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">ACTIVE MEMBERS</span>
+                    <span className="text-slate-400">👥</span>
+                  </div>
+                  <div className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+                    {stats?.totalStudents?.toLocaleString() || "3,892"}
+                  </div>
+                  <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Active in last 30 days
+                  </div>
+                </div>
+                {/* Borrowed Today */}
+                <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest">BORROWED (TODAY)</span>
+                    <span className="text-slate-400">⇄</span>
+                  </div>
+                  <div className="text-4xl font-extrabold text-slate-900 tracking-tight mb-2">
+                    {stats?.totalActiveBorrowings?.toLocaleString() || "142"}
+                  </div>
+                  <div className="text-xs font-bold text-slate-500 flex items-center gap-1">
+                    Current traffic: High
+                  </div>
+                </div>
+                {/* Overdue Returns */}
+                <div className="bg-white p-6 rounded-xl border border-red-200 shadow-sm flex flex-col justify-between relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-8 -mt-8"></div>
+                  <div className="flex items-center justify-between mb-4 relative z-10">
+                    <span className="text-[10px] font-extrabold text-red-600 uppercase tracking-widest">OVERDUE RETURNS</span>
+                    <span className="text-red-500 text-lg">⚠</span>
+                  </div>
+                  <div className="text-4xl font-extrabold text-red-600 tracking-tight mb-2 relative z-10">
+                    {stats?.totalOverdueBorrowings || "24"}
+                  </div>
+                  <div className="text-xs font-bold text-red-500 flex items-center gap-1 relative z-10">
+                    Action required
+                  </div>
+                </div>
+              </div>
+
+              {/* Middle Section: Chart & Top Books */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Chart Box */}
+                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-base font-bold text-slate-900">Borrowing Trends</h3>
+                    <select className="text-xs font-bold text-slate-500 border border-slate-200 rounded px-2 py-1 bg-slate-50 outline-none">
+                      <option>Last 7 Days</option>
+                      <option>This Month</option>
+                    </select>
+                  </div>
+                  <div className="flex-1 flex items-end justify-between gap-2 border-b border-slate-100 pb-2 relative min-h-[200px]">
+                    {/* Mock Chart Bars */}
+                    {[40, 60, 30, 80, 50, 90, 45].map((h, i) => (
+                      <div key={i} className="w-full bg-blue-50 hover:bg-blue-100 rounded-t-sm flex flex-col justify-end group transition-colors" style={{ height: '100%' }}>
+                        <div className="w-full bg-blue-500 rounded-t-sm transition-all group-hover:bg-blue-600" style={{ height: `${h}%` }}></div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between mt-3 px-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span><span>SUN</span>
+                  </div>
+                </div>
+
+                {/* Top Borrowed Books */}
+                <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                  <h3 className="text-base font-bold text-slate-900 mb-6">Top Borrowed Books</h3>
+                  
+                  <div className="flex flex-col gap-5 flex-1">
+                    {[
+                      { t: "The Modern Age", a: "E. Thompson", n: 84 },
+                      { t: "Digital Ethics", a: "Dr. M. Chen", n: 72 },
+                      { t: "Urban Architecture", a: "L. Rossi", n: 61 }
+                    ].map((mock, i) => (
+                      <div key={i} className="flex items-center gap-4">
+                        <div className="w-12 h-16 bg-slate-800 rounded shadow-sm flex items-center justify-center shrink-0 border border-slate-700">
+                          <span className="text-xs text-white font-serif opacity-50">L</span>
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <h4 className="text-sm font-bold text-slate-900 leading-snug truncate">{mock.t}</h4>
+                          <p className="text-xs font-medium text-slate-500 mb-1 truncate">{mock.a}</p>
+                          <span className="text-[10px] font-extrabold text-blue-600 uppercase tracking-widest bg-blue-50 px-2 py-0.5 rounded">
+                            {mock.n} LOANS
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button className="w-full py-3 mt-6 border border-slate-300 rounded-lg text-xs font-extrabold text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-colors">
+                    VIEW FULL REPORT
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Section: Recent Transactions */}
+              <div className="bg-white rounded-xl border border-slate-200 shadow-sm mb-8">
+                <div className="px-6 py-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <h3 className="text-base font-bold text-slate-900">Recent Transactions</h3>
+                  <div className="flex items-center gap-3">
+                    <button className="px-4 py-2 text-xs font-extrabold text-slate-600 uppercase tracking-widest border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors">
+                      Export CSV
+                    </button>
+                    <button className="px-4 py-2 text-xs font-extrabold text-white uppercase tracking-widest bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors">
+                      New Loan
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-slate-50/50">
+                      <tr>
+                        <th className="px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-100">BOOK TITLE</th>
+                        <th className="px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-100">MEMBER</th>
+                        <th className="px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-100">STATUS</th>
+                        <th className="px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-100">DATE</th>
+                        <th className="px-6 py-4 text-[10px] font-extrabold text-slate-500 uppercase tracking-widest border-b border-slate-100 text-right">ACTIONS</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {(borrowings || []).slice(0, 4).map((tr, i) => (
+                        <tr key={tr.id || i} className="hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-slate-900 flex items-center gap-3">
+                            <span className="text-slate-400">📄</span> {tr.book?.title || "Book Title"}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-slate-600">{tr.user?.name || "Member Name"}</td>
+                          <td className="px-6 py-4">
+                            <span className={`text-[10px] font-extrabold uppercase tracking-widest px-3 py-1.5 rounded-full border ${
+                              tr.status === "RETURNED" ? "text-emerald-700 bg-emerald-50 border-emerald-200" :
+                              tr.status === "BORROWED" ? "text-blue-700 bg-blue-50 border-blue-200" :
+                              "text-amber-700 bg-amber-50 border-amber-200"
+                            }`}>
+                              {tr.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-slate-500 font-medium">{new Date(tr.borrowDate).toLocaleDateString()}</td>
+                          <td className="px-6 py-4 text-right">
+                            <button className="text-slate-400 hover:text-slate-600 font-bold text-lg leading-none">⋮</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              <div className="text-center pb-8">
+                <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">© 2026 LEXICON MANAGEMENT SYSTEM | V2.4.1</span>
+              </div>
+
             </div>
-          </div>
-        ) : activeSubTab === "add_book" ? (
+          ) : activeSubTab === "add_book" ? (
           /* Add Book Tab */
           <div className="max-w-3xl mx-auto bg-bg border border-border rounded-xl p-8 shadow-sm">
             <h3 className="text-xl font-bold text-slate-900 mb-6">Tambah Buku Baru</h3>
@@ -1395,5 +1591,6 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
+  </div>
   );
 }
